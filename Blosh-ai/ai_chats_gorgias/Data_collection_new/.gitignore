@@ -1,0 +1,22 @@
+# Raw data files
+raw_chat_data_*.csv
+
+# Cleaned data files
+cleaned_chat_data_*.csv
+
+# Training files
+training_chat_*.jsonl
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment
+.env
+venv/
+env/
+

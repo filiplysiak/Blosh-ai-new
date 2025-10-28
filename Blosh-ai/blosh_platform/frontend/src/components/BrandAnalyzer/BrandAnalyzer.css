@@ -1,0 +1,68 @@
+.brand-analyzer-container {
+  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.tab-navigation {
+  display: flex;
+  gap: 0;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.tab-button {
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666666;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: -2px;
+}
+
+.tab-button:hover {
+  color: #000000;
+}
+
+.tab-button.active {
+  color: #000000;
+  border-bottom-color: #000000;
+}
+
+.brand-analyzer-header {
+  margin-bottom: 40px;
+}
+
+.page-title {
+  font-size: 36px;
+  font-weight: 300;
+  color: #000000;
+  margin-bottom: 10px;
+  letter-spacing: -0.5px;
+}
+
+.page-subtitle {
+  font-size: 16px;
+  color: #666666;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .brand-analyzer-container {
+    padding: 20px;
+  }
+  
+  .page-title {
+    font-size: 28px;
+  }
+  
+  .page-subtitle {
+    font-size: 14px;
+  }
+}
+
+

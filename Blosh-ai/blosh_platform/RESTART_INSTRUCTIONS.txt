@@ -1,0 +1,48 @@
+HOW TO RESTART THE SERVERS TO FIX CORS ERRORS
+==============================================
+
+The CORS errors you're seeing happen because the backend server needs to be 
+restarted with the updated CORS configuration.
+
+STEP 1: STOP ALL RUNNING SERVERS
+---------------------------------
+In your terminal, press: Ctrl + C (to stop the current process)
+
+Or if servers are running in background:
+  kill -9 $(lsof -ti:5000)  # Stop backend
+  kill -9 $(lsof -ti:3000)  # Stop frontend
+
+STEP 2: START FRESH
+-------------------
+Option A - Use the start script (EASIEST):
+  cd /Users/max/Documents/GitHub/Blosh-ai/blosh_platform
+  ./start.sh
+
+Option B - Start manually:
+  
+  Terminal 1 (Backend):
+    cd /Users/max/Documents/GitHub/Blosh-ai/blosh_platform/backend
+    source venv/bin/activate
+    python app.py
+  
+  Terminal 2 (Frontend):
+    cd /Users/max/Documents/GitHub/Blosh-ai/blosh_platform/frontend
+    npm start
+
+STEP 3: TEST
+------------
+1. Go to http://localhost:3000
+2. Enter password: Bloshai12!
+3. Click the eye icon to see your password as you type
+4. Login should work without CORS errors
+
+WHAT WAS FIXED:
+---------------
+✓ CORS configuration updated to allow credentials
+✓ Password visibility toggle added (eye icon)
+✓ Favicon added to prevent 403 errors
+✓ All toast notifications working
+✓ Session persistence enabled
+
+NOTE: The password is still "Bloshai12!" as requested.
+

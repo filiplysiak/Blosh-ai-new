@@ -1,0 +1,76 @@
+{
+  "week_number": 35,
+  "year": 2025,
+  "upload_date": "2025-10-23T17:41:46.150966",
+  "pdf_filename": "Erm_Fashion_Branche_Dames_Rapportage_Z_-_Week_35_2025.pdf",
+  "status": "completed",
+  "files": {
+    "docx": "Analyse_ERM_Week_35_2025.docx",
+    "brands_xlsx": "brands_table.xlsx",
+    "summary_xlsx": "summary_table.xlsx"
+  },
+  "summary": {
+    "week_number": 35,
+    "year": 2025,
+    "upload_date": "2025-10-23T17:41:46.150972",
+    "total_brands": 121,
+    "freebird": {
+      "omzet_index": "1.40",
+      "dvk": "90.15",
+      "rent": "544.60",
+      "marge": "52.43%",
+      "os": "4.94"
+    },
+    "competitors": {
+      "FREEBIRD": {
+        "omzet_index": "1.40",
+        "dvk": "90.15",
+        "rent": "544.60",
+        "marge": "52.43%",
+        "os": "4.94"
+      },
+      "FABIENNE CHAPOT": {
+        "omzet_index": "0.79",
+        "dvk": "92.10",
+        "rent": "366.48",
+        "marge": "49.74%",
+        "os": "3.70"
+      },
+      "HARPER & YVE": {
+        "omzet_index": "1.03",
+        "dvk": "90.13",
+        "rent": "449.63",
+        "marge": "49.02%",
+        "os": "4.68"
+      },
+      "JOSH V": {
+        "omzet_index": "1.39",
+        "dvk": "90.90",
+        "rent": "461.47",
+        "marge": "51.04%",
+        "os": "4.43"
+      },
+      "POM AMSTERDAM": {
+        "omzet_index": "0.93",
+        "dvk": "93.19",
+        "rent": "425.91",
+        "marge": "49.96%",
+        "os": "4.27"
+      },
+      "AAIKO": {
+        "omzet_index": "1.17",
+        "dvk": "88.21",
+        "rent": "490.37",
+        "marge": "52.24%",
+        "os": "4.48"
+      }
+    },
+    "group_average": {
+      "omzet_index": "1.11",
+      "dvk": "89.69",
+      "rent": "480.70",
+      "marge": "51.61%",
+      "os": "4.42"
+    }
+  }
+}

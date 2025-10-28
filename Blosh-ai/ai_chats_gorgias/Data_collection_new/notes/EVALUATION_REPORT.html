@@ -1,0 +1,1308 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fine-Tuned Model Evaluation Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 4px solid #3498db; padding-bottom: 15px; margin-bottom: 30px; }
+        h2 { color: #34495e; margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #ecf0f1; }
+        h3 { color: #7f8c8d; margin-top: 25px; margin-bottom: 15px; }
+        .meta { background: #ecf0f1; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .meta-item { display: inline-block; margin-right: 30px; margin-bottom: 10px; }
+        .meta-label { font-weight: bold; color: #7f8c8d; }
+        .test-case { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 25px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .case-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; border-radius: 8px; margin: -25px -25px 20px -25px; }
+        .case-title { font-size: 24px; font-weight: bold; }
+        .case-info { margin-top: 10px; opacity: 0.9; font-size: 14px; }
+        .message-box { background: #f0f8ff; border-left: 4px solid #3498db; padding: 20px; margin: 15px 0; border-radius: 4px; }
+        .response-box { background: #fff8e1; border-left: 4px solid #ffc107; padding: 20px; margin: 15px 0; border-radius: 4px; }
+        .ai-response-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 20px; margin: 15px 0; border-radius: 4px; }
+        .category-tag { display: inline-block; background: #e3f2fd; color: #1976d2; padding: 4px 12px; border-radius: 4px; font-size: 13px; margin-top: 5px; }
+        .content { white-space: pre-wrap; word-wrap: break-word; font-size: 14px; line-height: 1.6; }
+        .footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid #ecf0f1; text-align: center; color: #7f8c8d; }
+        .original { color: #666; font-size: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fine-Tuned Model Evaluation Report</h1>
+        
+        <div class="meta">
+            <div class="meta-item">
+                <span class="meta-label">Model ID:</span> ft:gpt-4.1-mini-2025-04-14:personal:blosh-mail-v3-optimized:CVTnPZJB
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Evaluation Date:</span> 2025-10-28 04:02:08
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Test Cases:</span> 15
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Language:</span> English (translated from Dutch)
+            </div>
+        </div>
+        
+        <h2>Test Cases</h2>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 1: Retour</div>
+                <div class="case-info">
+                    Ticket #185341661 | Customer: Jantine | Return::Request::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Good morning,
+
+I see that I cannot return my item because the 14-day period has expired. (Only 1 day if I count after delivery) I am very shocked by this. However, a lot has happened privately (my husband has passed away) and I would still very much like to return something. Could you please help me with this?
+
+My order number is: 433007.
+
+Kind regards,
+
+Jantine van Steenbergen</div>
+                <div class="original"><strong>Original (Dutch):</strong> Goedemorgen,
+
+Ik zie dat ik mijn artikel niet kan retourneren, omdat het termijn van 14 dagen verlopen is. (Slechts 1 dag als ik tel na levering) Hier schrik ik erg van. Maar er is hier privé erg ve...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Jantine,
+
+How unfortunate that the order is not entirely what you expected and what unpleasant circumstances. Unfortunately, as indicated on the website and the return form, we have a return period of 14 days; after 14 days, it is systematically no longer possible for us to process a return shipment. If we could have done this, we would have gladly helped you.
+
+Our apologies for the inconvenience.
+
+Have a nice day.
+
+Best regards,
+
+Team Freebird  
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Jantine, 
+
+Wat vervelend dat de bestelling niet helemaal is wat je ervan verwacht had en wat een vervelende omstandigheden. 
+Helaas zoals aangegeven op de website en het retourformulier hebben w...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Jantine,
+
+Thank you for your message. 
+I'm sorry to hear that the order is not exactly what you expected. 
+Unfortunately, as stated on the website and the return form, we have a return period of 14 days; after 14 days, it is systematically no longer possible for us to process a return. If we could have done this, we would have been happy to help you.
+
+We apologize for the inconvenience.
+
+Have a nice day.
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Jantine, 
+
+Bedankt voor je bericht. 
+Wat vervelend dat de bestelling niet helemaal is wat je ervan verwacht had. 
+Helaas zoals aangegeven op de website en het retourformulier hebben wij een retourtermijn van 14 dagen, na 14 dagen is het voor ons systematisch niet meer mogelijk een retourzending te verwerken. Als we dit hadden kunnen doen hadden we je natuurlijk graag geholpen. 
+
+Onze excuses voor het ongemak. 
+
+Nog een fijne dag.
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 2: Re: Order 432209</div>
+                <div class="case-info">
+                    Ticket #184537465 | Customer: Chayenne | Return::Request::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Good afternoon,
+
+I tried to reach you by phone, but that didn't work, so I am sending you this email.
+
+Earlier, I placed an order with you. Unfortunately, it was delivered later than I expected, which meant I could not receive the package in time for my vacation.
+
+Now I have been able to try on the clothing, but unfortunately, it does not fit well. Therefore, I would like to return the package, but I noticed that the standard return period has expired. 
+I would like to ask if it is still possible to return it?
+
+I look forward to hearing from you!
+
+Best regards,
+
+Chayenne van der Poel</div>
+                <div class="original"><strong>Original (Dutch):</strong> Goedemiddag, 
+
+Ik heb jullie telefonisch geprobeerd te bereiken, maar dat lukte niet dus graag stuur ik jullie deze mail toe. 
+
+Eerder heb ik een bestelling bij jullie geplaatst. Helaas werd deze ...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Chayenne,  
+Thank you for your message.  
+As indicated, it is not possible to process a return once the return period has expired.  
+We have not heard before that a lurex thread looks different than on the website. If possible, you can send us some photos so we can take a look and discuss this internally.  
+
+Have a nice day!  
+
+Best regards,  
+
+Team Freebird  
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> HI Chayenne, 
+Bedankt voor je bericht. 
+Zoals aangegeven is het niet mogelijk een retour nog te verwerken nadat de retourperiode is verlopen. 
+We hebben nog niet eerder gehoord dat een lurex draad ...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Chayenne,
+
+Thank you for your message.
+
+I'm sorry to hear that the order is not exactly what you expected. Unfortunately, as stated on the website and the return form, we have a return period of 14 days; after 14 days, it is systematically no longer possible for us to process a return shipment. If we could have done this, we would have been happy to assist you.
+
+We apologize for the inconvenience.
+
+Have a nice day!
+
+Best regards,
+
+Team Freebird  
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Chayenne, 
+
+Bedankt voor je bericht. 
+
+Wat vervelend dat de bestelling niet helemaal is wat je ervan verwacht had. 
+Helaas zoals aangegeven op de website en het retourformulier hebben wij een retourtermijn van 14 dagen, na 14 dagen is het voor ons systematisch niet meer mogelijk een retourzending te verwerken. Als we dit hadden kunnen doen hadden we je natuurlijk graag geholpen. 
+
+Onze excuses voor het ongemak. 
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 3: Fwd:</div>
+                <div class="case-info">
+                    Ticket #185897422 | Customer: petra | Order::Other::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Good morning,
+
+Here are the photos of the sweater. 
+
+---------- Forwarded message ---------
+From: petra wiessing <pewiessing@gmail.com>
+Date: Wed, Oct 8, 2025 at 09:40
+Subject:
+To: <pewiessing@gmail.com></div>
+                <div class="original"><strong>Original (Dutch):</strong> 
+Goedemorgen,
+
+Hierbij de foto`s van de trui.
+
+---------- Forwarded message ---------
+Van: petra wiessing <pewiessing@gmail.com>
+Date: wo 8 okt 2025 om 09:40
+Subject:
+To: <pewiessing@gmail.co...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Petra,
+
+Thank you for your message.
+Which sweater is it from the orders you placed, so we can discuss this internally.
+
+Kind regards,
+
+Team Simple the Brand</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Petra, 
+
+Bedankt voor je bericht. 
+Welke trui is het van de bestellingen die je hebt geplaatst, dan kunnen we dit intern even overleggen. 
+
+Met vriendelijke groet,
+
+Team Simple the Brand...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Petra,
+
+Thank you for your message. 
+I’m sorry to hear that an item from your order is defective; that is certainly not the intention. We have just created a return label for you, which allows you to return the item to our headquarters free of charge. This can be found at the bottom of this email, under the signature. We kindly ask you to note on the packing slip that the item is defective. If you do not have this packing slip, we would like to ask you to write down your details and the defect on a separate sheet of paper.
+Additionally, we advise you to place a new order yourself, as this is the fastest way.
+
+Once your return shipment has been received and processed, the refund will be arranged.
+
+We apologize for the inconvenience.
+
+If you have any further questions, we are of course happy to help.
+
+Have a great day today!
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> ​Hi petra,
+
+Bedankt voor jouw bericht. 
+Wat vervelend om te horen dat een item uit jouw bestelling defect is, dat is natuurlijk niet de bedoeling. Wij hebben zojuist een retourlabel voor jou aangemaakt waarmee jij het item kosteloos naar ons hoofdkantoor kan retourneren. Deze is terug te vinden onderaan deze mail, onder de handtekening. Wij willen jou vragen om op de pakbon te noteren dat het item defect is. Mocht jij deze pakbon niet hebben, willen wij jou graag vragen om op een los blaadje jouw gegevens en het defect te noteren.
+Daarnaast willen wij jou adviseren om zelf een nieuwe bestelling te plaatsen, dit is namelijk de snelste manier.
+
+Wanneer jouw retourzending is ontvangen en verwerkt, zal hiervan de terugbetaling in orde worden gemaakt.
+
+Onze excuses voor het ongemak.
+
+Mochten er verder nog vragen zijn, helpen wij natuurlijk graag.
+
+Nog een hele fijne dag vandaag!
+​
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 4: bestelling 102433010</div>
+                <div class="case-info">
+                    Ticket #183860273 | Customer: Malouke | Shipping::Change Address::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Good morning,
+
+Last Monday I ordered a dress and apparently there was something wrong with the address. My house number is missing number 4. I cannot change it via the website and the order is also not being shipped.
+
+Can you help with this?
+
+Thank you in advance.
+
+Kind regards, Malouke</div>
+                <div class="original"><strong>Original (Dutch):</strong> Goedemorgen,
+
+Afgelopen maandag heb ik een jurk besteld en schijnbaar is er iets fout gegaan bij het adres. Mijn huisnummer mist namelijk nummer 4. Via de website kan ik het niet wijzigen en de orde...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Malouke,
+
+Thank you for your message.
+I'm sorry that this has happened.
+Unfortunately, we see that the package has already been sent; when you receive the tracking information, you can adjust the delivery point.
+If you haven't done that, the item will likely be returned to us, and we will arrange the refund for you.
+
+You can then place the order again yourself with the complete address.
+
+Have a nice day!
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Malouke, 
+
+Bedankt voor je bericht.
+Wat vervelend dat dit is gebeurd.
+Helaas zien we dat het pakket al is verstuurd, wanneer je de track and trace ontvangt kan je het aflever punt aanpassen.
+A...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Malouke,
+
+Thank you for your message. 
+I'm sorry that this has happened. 
+Unfortunately, we see that the package has already been sent; when you receive the tracking information, you can change the delivery point.
+
+I hope I have provided you with enough information.
+
+Have a great day!
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Malouke, 
+
+Bedankt voor je bericht. 
+Wat vervelend dat dit is gebeurd. 
+Helaas zien we dat het pakket al verstuurd is, wanneer je de track and trace ontvangt kan je het aflever punt aanpassen. 
+
+Ik hoop je hiermee genoeg informatie te hebben gegeven. 
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 5: Nieuw klantbericht op 3 oktober 2025 om 10:03</div>
+                <div class="case-info">
+                    Ticket #185204737 | Customer: Arianne | Return::Request::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">You have received a new message via the contact form of your webshop.  
+Country code:  
+
+NL  
+
+Name:  
+
+Arianne Boele  
+
+Email:  
+
+arianneboele@gmail.com  
+
+Phone number:  
+
+0636510067  
+
+Message:  
+
+Good day,  
+
+I would like to return my order 434012. How can I arrange that?  
+
+Regards,  
+Arianne Boele  </div>
+                <div class="original"><strong>Original (Dutch):</strong> Je hebt een nieuw bericht ontvangen via het contactformulier van je webshop.
+Landcode:
+
+NL
+
+Naam:
+
+Arianne Boele
+
+E-mail:
+
+arianneboele@gmail.com
+
+Telefoonnummer:
+
+0636510067
+
+Reactie...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Arianne,
+
+Thank you for your message.
+You can create the return shipment through our website.
+
+Here is the link: https://freebirdicons.com/en/policies/refund-policy
+
+If you have any questions, please let us know.
+
+Have a nice day!
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Arianne, 
+
+Bedankt voor je bericht.
+Via onze website kan je de retourzending aanmaken. 
+
+Hierbij de link: https://freebirdicons.com/en/policies/refund-policy
+
+Mocht je nog vragen hebben hore...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Arianne,
+
+Here is a return label to send your package back.
+
+Kind regards,
+
+Team Freebird  
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Arianne, 
+
+Hierbij een retourlabel om je pakket retour te sturen. 
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 6: Re: (No subject)</div>
+                <div class="case-info">
+                    Ticket #185319066 | Customer: Sjoukje | Account::Update::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Hello,
+
+I would like to change the email address of my account. How do I do this?
+
+Best regards,
+Sjoukje</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hallo,
+
+Ik wil graag mijn email adres wijzigen van mijn account. Hoe doe ik dit?
+
+Mvg
+Sjoukje
+
+
+
+
+...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi, 
+
+We have adjusted it. 
+
+Kind regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi, 
+
+We hebben het aangepast. 
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Sjoukje,
+
+Thank you for your message. 
+If you log into your account, you can change it yourself.
+
+Have a nice day!
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Sjoukje, 
+
+Bedankt voor je bericht. 
+Als je inlogt op je account, kan je deze dan zelf wijzigen. 
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 7: Re: 102303310 - glitters</div>
+                <div class="case-info">
+                    Ticket #184591965 | Customer: Sanne | Product::Quality Issues::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Dear reader,
+
+In mid-August, I placed an order (order no. 102303310) for a dress (Delfine Dress Pink). I wore this dress last Friday at my best friend's wedding.
+
+The dress is beautiful, but the glitter is coming off in masses... there were glitters everywhere... on the bride's dress, in my own house, I couldn't sit in my car seat without putting something down, at the location we were at, the hotel where I stayed... there was a trail of glitters left behind. Not just a few, but really thousands and thousands of glitters. For a dress that costs €114, I find this troubling and actually unacceptable... hence my email with this complaint. Furthermore, I don't think I can ever wear this dress again. On one hand, everything ends up covered in glitter, and on the other hand, 'bald' spots will appear when all the glitter comes off the dress.
+
+Kind regards,  
+Tessa van de Ridder</div>
+                <div class="original"><strong>Original (Dutch):</strong> Beste lezer,
+
+Halverwege augustus heb ik een order geplaatst (ordernr. 102303310) voor een  jurk (Delfine Dress Roze).
+Deze jurk heb ik afgelopen vrijdag aangehad tijdens de bruiloft van mijn beste...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Tessa,
+
+Thank you for your message.
+We have forwarded this internally to our production department.
+As soon as we receive a response from them, we will get back to you.
+
+Kind regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Tessa, 
+
+Bedankt voor je bericht. 
+We hebben dit intern even doorgestuurd naar onze productie afdeling. 
+Wanneer we van hen en reactie ontvangen komen we gelijk bij je terug. 
+
+Met vriendelij...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Tessa,
+
+Thank you for your message. 
+I'm sorry to hear that this has happened; this is certainly not the intention. 
+We only see that the order number is not quite right. 
+Could you please send us the correct order number so we can take a look with you?
+
+I look forward to hearing from you.
+
+Have a great day!
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Tessa, 
+
+Bedankt voor je bericht. 
+Wat vervelend dat dit is gebeurd, dit is natuurlijk niet de bedoeling. 
+We zien alleen dat het ordernummer niet helemaal klopt. 
+Zou je het juiste ordernummer voor ons kunnen doorsturen zodat we even met je mee kunnen kijken. 
+
+Ik hoor graag van je. 
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 8: Freebird retouren</div>
+                <div class="case-info">
+                    Ticket #185890892 | Customer: Femke | Return::Request::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Dear Sir/Madam,
+
+Last week I wanted to return my package, but because I needed a printer, I had to wait until I could visit my parents to print. Unfortunately, I now realize that I am 1 day late in returning it and can no longer register my return. Is there still a possibility to return these dresses? Both dresses are too small, so keeping them is unfortunately not an option for me.
+
+My order number is 432598.
+
+I apologize for the inconvenience. I would like to hear if there is still something possible.
+
+Kind regards,
+
+Femke de Kock - Huijgens</div>
+                <div class="original"><strong>Original (Dutch):</strong> Beste meneer/mevrouw,
+
+Vorige week heb ik mijn pakket willen retourneren, maar omdat ik een printer nodig had moest ik wachten tot ik bij mijn ouders langs kon om te printen. Nu kom ik er helaas ach...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Femke,
+
+Thank you for your message.
+
+I'm sorry to hear that the order is not exactly what you expected. Unfortunately, as stated on the website and the return form, we have a return period of 14 days; after 14 days, it is systematically no longer possible for us to process a return shipment. If we could have done this, we would have been happy to assist you.
+
+Our apologies for the inconvenience.
+
+Have a great day!
+
+Kind regards,
+
+Team Freebird  
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Femke, 
+
+Bedankt voor je bericht. 
+
+Wat vervelend dat de bestelling niet helemaal is wat je ervan verwacht had. 
+Helaas zoals aangegeven op de website en het retourformulier hebben wij een ret...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Femke,
+
+Thank you for your message.
+
+I'm sorry to hear that the order is not exactly what you expected. Unfortunately, as stated on the website and the return form, we have a return period of 14 days; after 14 days, it is systematically no longer possible for us to process a return shipment. If we could have done this, we would have been happy to help you.
+
+We apologize for the inconvenience.
+
+Have a nice day!
+
+Best regards,
+
+Team Freebird  
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Femke, 
+
+Bedankt voor je bericht. 
+
+Wat vervelend dat de bestelling niet helemaal is wat je ervan verwacht had. 
+Helaas zoals aangegeven op de website en het retourformulier hebben wij een retourtermijn van 14 dagen, na 14 dagen is het voor ons systematisch niet meer mogelijk een retourzending te verwerken. Als we dit hadden kunnen doen hadden we je natuurlijk graag geholpen. 
+
+Onze excuses voor het ongemak. 
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 9: Retour bestelling 10243011</div>
+                <div class="case-info">
+                    Ticket #183884768 | Customer: Dana | Return::Request::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Dear Sir/Madam,
+
+I would like to return a part of order 10243011, namely: Blossom Dress Faded Blue - M.
+
+I am trying to register the return shipment, but I am receiving an error message. Could you please assist me with this?
+
+Thank you in advance!
+
+Kind regards,
+
+Dana Elzinga  
+Burg. Crommelinlaan 1A  
+7431HC Diepenveen  
+06-16407770</div>
+                <div class="original"><strong>Original (Dutch):</strong> Beste heer/mevrouw,
+
+Ik wil graag een deel van bestelling 10243011 retoureren, te weten: Blossom Jurk Faded Blauw - M.
+
+Nu probeer ik de retourzending an te melden, maar krijg ik een foutmelding. ...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Dana,
+
+Thank you for your message. I'm sorry that you were unable to create a return label. In the attachment, you will find a return label to send the package back.
+
+Have a great day!
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Dana, 
+
+Bedankt voor je bericht. Vervelend dat het niet is gelukt om een retourlabel aan te maken. In de bijlage vind je een retourlabel om het pakket op te sturen. 
+
+Nog een fijne dag! 
+
+Met...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Dana,
+
+Thank you for your message.
+We have taken care of this for you right away.
+
+Have a nice day!
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> HI Dana, 
+
+Bedankt voor je bericht. 
+We hebben dit gelijk even voor je in orde gemaakt. 
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 10: FALL30 code niet verrekend</div>
+                <div class="case-info">
+                    Ticket #185481140 | Customer: Annemarijn | Promotion & Discount::Issue::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Dear team,
+
+I placed an order yesterday under order number: 102459410. The system did not apply the code FALL30 in the calculation, and I paid the amount without the extra discount. I only ordered outlet items, so it concerns almost 90 euros in discount. This is a fixed amount that I would like to have adjusted retroactively.
+
+At first, I thought it would be convenient to cancel the order and then create a new one including the extra discount code. Unfortunately, that is no longer possible as I received an email today that the package has already been packed and is on its way.
+
+So a refund of the discount amount seems to be the only option now.
+
+I look forward to your response and thank you in advance!
+
+Warm regards,  
+Annemarijn</div>
+                <div class="original"><strong>Original (Dutch):</strong> Beste team,
+
+Ik heb gister een order geplaatst onder bestelnr: 102459410
+Nu heeft het systeem de code FALL30 niet meegenomen in de berekening en 
+heb ik het bedrag zonder de extra korting betaald....</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Annemarie,  
+The discount was, as seen on the website, only valid on items from the Fall Deals Outlet.  
+We see that you ordered a number of items from the summer outlet, for which the code unfortunately does not apply.  
+If you let us know which of the items below you would like to keep, we can still apply the discount afterwards.  
+- Pam Jeans Purple  
+- Patty Pants Brown.  
+
+We look forward to hearing from you.  
+Best regards,  
+
+Team Freebird  
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> HI Annemarie, 
+De korting was zoals te zien op de website alleen geldig op items uit de Fall Deals Outlet. 
+We zien dat je een aantal items uit de zomer outlet hebt besteld, hiervoor geld de code he...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Annemarijn,
+
+Thank you for your message. 
+I'm sorry to hear that this has happened. 
+Unfortunately, the FALL30 code only works on items from the outlet as indicated on the website. 
+We see that there are also items ordered outside of the outlet in the order, which do not qualify for the discount. 
+The discount was calculated correctly in our system, and we see that the return has already been registered. 
+We kindly ask you to note on the packing slip for the items you are returning that they are being returned due to no discount.
+
+Have a nice day!
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Annemarijn, 
+
+Bedankt voor je bericht. 
+Wat vervelend dat dit is gebeurd. 
+Helaas werkt de FALL30 code alleen op items uit de outlet zoals aangegeven op de website. 
+We zien dat er in de bestelling ook items buiten outlet besteld zijn, deze vallen dus niet onder de korting. 
+De korting werd bij ons systeem ook juist berekend, we zien dat de retourzending al is aangemeld. 
+We willen je vragen de items die je terugstuurt op de pakbon te noteren dat deze retour gaan ivm geen korting. 
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 11: Enkele vragen</div>
+                <div class="case-info">
+                    Ticket #185800749 | Customer: Ellen | Other::Other::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Hi, 
+
+I have tried to reach you several times, but unfortunately, I can only do so via email. Could we get in touch by phone? You can reach me at 0644521929.
+
+Regards, Ellen Brons
+
+Sent from my Galaxy</div>
+                <div class="original"><strong>Original (Dutch):</strong> 
+Hoi,
+
+Ik heb jullie verschillende keren proberen te bereiken, maar helaas lukt dat niet anders dan via de mail. Zouden we telefonisch contact kunnen krijgen? Ik ben te bereiken op 0644521929.
+
+G...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Ellen,
+
+Thank you for your message and call.
+Hereby the confirmation that we can still apply the 30% discount retrospectively on the items from the outlet.
+Could you please let us know when you have returned the order and whether this has ultimately become the blouse?
+
+We look forward to hearing from you.
+
+Have a nice day!
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Ellen, 
+
+Bedankt voor je bericht en belletje. 
+Hierbij de bevestiging dat we op de items uit de outlet de 30% korting achteraf nog kunnen verrekenen. 
+Laat je ons even weten wanneer je de beste...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Ellen,
+
+Thank you for your message. 
+Unfortunately, we are not available by phone at the moment, but we are happy to assist you via email.
+
+How can we help you?
+
+Best regards,
+
+Team Simple the Brand</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Ellen, 
+
+Bedankt voor je bericht. 
+Helaas zijn we op dit moment telefonisch niet bereikbaar, maar we helpen je natuurlijk graag via de mail. 
+
+Waar kunnen we je mee helpen? 
+
+Met vriendelijke groet,
+
+Team Simple the Brand</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 12: Niet afgeleverd pakket</div>
+                <div class="case-info">
+                    Ticket #185066675 | Customer: Suzanne | Shipping::Delivered Not Received::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Good afternoon,
+
+On September 30, a package was supposed to be delivered to me. This concerns order number 433693. Unfortunately, this did not happen. I have received emails from PostNL stating that it has been delivered. I reported this to PostNL, and they will be filing a complaint. I also need to report it to you for further investigation. Here it is!
+
+What will happen next?
+
+Kind regards,
+
+Suzanne Prins - van der Schee</div>
+                <div class="original"><strong>Original (Dutch):</strong> Goedemiddag,
+
+Op 30 sept zou er een pakket bij mij afgeleverd zijn. Dit gaat om ordernr; 433693. 
+Helaas is dit dus niet gebeurd. Ik heb wel mails ontvangen ook van PostNL met dat het bezorgd is. D...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Suzanne,
+
+PostNL indicates that the package has been delivered to the agreed location behind the house.
+
+Kind regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Suzanne, 
+
+PostNL geeft aan het pakket op de afgesproken plek is bezorgd achter het huis.
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Suzanne,
+
+Thank you for your message. 
+I'm sorry to hear that you haven't received a package. We will start an investigation with PostNL to find out as soon as possible where the package was delivered.
+
+I only see that the house number was not completely filled in correctly when placing the order; the package was sent to Voorveste 12 but 2 was filled in. Perhaps PostNL returned the package because of this.
+
+I would like to hear from Suzanne, but just for the sake of completeness.
+
+Best regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Suzanne, 
+
+Bedankt voor je bericht. 
+Wat vervelend dat je geen pakket hebt ontvangen. We gaan een onderzoek starten bij PostNL om er zo snel mogelijk achter te komen waar het pakket is bezorgd. 
+
+Ik zie alleen dat het huisnummer niet helemaal juist is ingevuld bij het plaatsen van de bestelling, het pakket is namelijk verstuurd naar  Voorveste 12 maar er is 2 ingevuld. Misschien dat PostNL het pakket hierdoor heeft teruggestuurd. 
+
+Ik hoor het graag van Suzanne, maar voor de volledigheid alvast. 
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 13: Jurk retour sturen.</div>
+                <div class="case-info">
+                    Ticket #184553373 | Customer: Marina | Return::Request::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">I ordered a dress from Simple the Brand via the internet. The dress was delivered on September 26 at a Post NL point in Lelystad.
+
+When I got home, I tried on the dress, but it is too big and I couldn't tie the straps nicely. I would like to return the dress, but I can't find exactly how to do this on your website. I tried calling customer service, but they didn't answer the phone. 
+
+Please explain how to return the dress and get my payment back. Thank you in advance. My name is Marina van Ast, Hollandse Hout 41, 8244 GB Lelystad. The order number for the purchase is 433574. Order date: 25-09-2025. 
+
+Kind regards, Marina van Ast, mobile number 0622964011.</div>
+                <div class="original"><strong>Original (Dutch):</strong> Via internet bestelde ik een jurk van Simple the Brand.
+De jurk werd 26 september afgeleverd bij een Post NL punt in Lelystad.
+
+Thuis gekomen de jurk gepast, maar hij is te groot en  de riemen kree...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Marina,
+
+An item can be returned to us within 14 days after delivery. This can be done via the returns section on our website using the instructions on the enclosed invoice: https://simplethebrand.com/nl/policies/refund-policy.
+
+I hope I have provided you with enough information.
+
+Kind regards,
+
+Team Simple the Brand</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Marina, 
+
+Een item kan bij ons 14 dagen na de levering worden retour gestuurd. 
+Dit kan via het kopje retourneren op onze website met behulp van de uitleg op de bijgeleverde factuur: https://sim...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Marina,
+
+You can register the item for return via the following link: https://simplethebrand.com/en/policies/refund-policy
+As soon as we have received and processed your return, the refund will be arranged within 14 days.
+
+Have a nice day!
+
+Kind regards,
+
+Team Simple the Brand</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Marina, 
+
+Via de volgende link kan je het item retour aanmelden: https://simplethebrand.com/en/policies/refund-policy
+Zodra wij je retour hebben ontvangen en verwerkt wordt de terugbetaling binnen 14 dagen in orde gemaakt. 
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Simple the Brand</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 14: Re: Kennisgeving van terugbetaling</div>
+                <div class="case-info">
+                    Ticket #185761722 | Customer: Marina | Order::Refund::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Thank you for your message.  
+How long does it take for it to appear in my account?  
+Kind regards, Marina van Ast  
+
+On Tue, Oct 7, 2025, at 11:49, Simple the Brand <info@simplethebrand.com> wrote:  
+Simple the Brand< 20338620  
+Your order has been refunded  
+
+Total refunded amount: €113.45 EUR  
+
+Order summary  
+[https://cdn.shopify.com/s/files/1/0678/0420/1224/files/Frame49_compact_cropped.jpg?v=1753798377]       Siets Dress Black × 1  
+M  
+Refunded  
+
+€119.95 EUR  
+
+Subtotal  
+
+€119.95 EUR  
+
+Shipping  
+
+€0.00 EUR  
+
+VAT  
+
+€20.82 EUR  
+
+Total  
+
+€119.95 EUR  
+
+unknown (ending in ••• )  
+
+€119.95 EUR  
+
+Refund  
+Unknown  
+
+- €113.45 EUR  
+
+If you have any questions, you can reply to this email or email us at info@simplethebrand.com  </div>
+                <div class="original"><strong>Original (Dutch):</strong> Dank voor uw bericht.
+Hoe lang duurt het voor het op mijn rekening staat!
+Vriendelijke groet, Marina van Ast
+
+Op di 7 okt 2025, 11:49 schreef Simple the Brand <info@simplethebrand.com>:
+Simple th...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Marina,
+
+Thank you for your message.
+The amount should be visible in your account within 1 to 2 working days, depending on your bank.
+
+Have a nice day!
+
+Best regards,
+
+Team Simple the Brand</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Marina,
+
+Bedankt voor je bericht.
+Het bedrag zal binnen 1 a 2 werkdagen op je rekening te zien moeten zijn afhankelijk van je bank.
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Simpl...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Marina,
+
+Thank you for your message.
+Within 1 to 2 working days.
+
+Have a nice day!
+
+Kind regards,
+
+Team Simple the Brand</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Marina, 
+
+Bedankt voor je bericht. 
+Binnen 1 a 2 werkdagen. 
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Simple the Brand</div>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <div class="case-header">
+                <div class="case-title">Case 15: Trui</div>
+                <div class="case-info">
+                    Ticket #185677659 | Customer: petra | Product::Quality Issues::Other
+                </div>
+            </div>
+            
+            <h3>Customer Message</h3>
+            <div class="message-box">
+                <div class="content">Good evening,
+
+I bought 4 "sweaters from you order number 20340520 and 1 sweater is already pilling a lot after wearing it just 2 times. That shouldn't be the case with a sweater costing €99.99?</div>
+                <div class="original"><strong>Original (Dutch):</strong> Goedeavond,
+
+Ik heb 4 "truien bij jullie gekocht ordernr 20340520 en 1 trui gaat na 2x dragen al ontzettend pillen.
+Dat moet toch niet zo zijn met een trui van €99,99?
+
+
+
+
+
+
+
+...</div>
+            </div>
+            
+            <h3>Human Agent Response (Actual)</h3>
+            <div class="response-box">
+                <div class="content">Hi Petra,
+
+Thank you for your message. 
+I'm sorry to hear that the item is defective. That is certainly not the intention. Could we please receive a photo from you? Then we can take a look at this internally and come up with an appropriate solution.
+
+Thank you in advance for your response!
+
+Best regards,
+
+Team Simple the Brand</div>
+                <div class="original"><strong>Original (Dutch):</strong> ​Hi petra,
+
+Bedankt voor jouw bericht. 
+Wat vervelend om te horen het item defect is. Dat is natuurlijk niet de bedoeling. Zouden wij van jou een foto mogen ontvangen? Dan kunnen wij dit intern eve...</div>
+            </div>
+            
+            <h3>AI Model Response (Fine-tuned)</h3>
+            <div class="ai-response-box">
+                <div class="content">Hi Petra,
+
+Thank you for your message. 
+I'm sorry that this has happened. 
+We see that the order was placed a while ago and would like to offer you the opportunity to receive the sweater again by providing a discount code for your next order.
+
+Code: petra20340520
+
+Have a nice day!
+
+Kind regards,
+
+Team Freebird
+020 8081004</div>
+                <div class="original"><strong>Original (Dutch):</strong> Hi Petra, 
+
+Bedankt voor je bericht. 
+Wat vervelend dat dit is gebeurd. 
+We zien dat de bestelling al een tijd geleden is geplaatst en willen je daarom graag aanbieden om de trui opnieuw te krijgen door een kortingscode aan te bieden voor je eerst volgende bestelling. 
+
+Code: petra20340520
+
+Nog een fijne dag!
+
+Met vriendelijke groet,
+
+Team Freebird
+020 8081004</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>Report generated on October 28, 2025 at 04:02:08</strong></p>
+            <p>Fine-tuned model: ft:gpt-4.1-mini-2025-04-14:personal:blosh-mail-v3-optimized</p>
+            <p>Training data: 3,491 real customer conversations</p>
+            <p>Freebird Icons & Simple the Brand - Dutch Customer Support</p>
+        </div>
+    </div>
+</body>
+</html>

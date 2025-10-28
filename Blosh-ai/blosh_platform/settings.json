@@ -1,0 +1,25 @@
+{
+  "brand_analyzer": {
+    "competitor_brands": [
+      "FREEBIRD",
+      "FABIENNE CHAPOT",
+      "HARPER & YVE",
+      "JOSH V",
+      "POM AMSTERDAM",
+      "AAIKO"
+    ],
+    "default_comparison": "GROUP_AVERAGE",
+    "default_trend_brand": "FREEBIRD",
+    "primary_brand": "FREEBIRD",
+    "thresholds": {
+      "high_dvk": 45,
+      "high_dvk_threshold": 40,
+      "high_margin": 56,
+      "high_os": 4,
+      "high_volume_share": 1,
+      "low_dvk": 30,
+      "low_margin": 48,
+      "low_os": 2.5
+    }
+  }
+}

@@ -1,0 +1,238 @@
+.analysis-detail-container {
+  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.back-button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background: none;
+  border: 1px solid #000000;
+  color: #000000;
+  cursor: pointer;
+  margin-bottom: 30px;
+  transition: all 0.2s;
+}
+
+.back-button:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.detail-header {
+  margin-bottom: 40px;
+}
+
+.detail-title-section {
+  margin: 20px 0;
+}
+
+.detail-title {
+  font-size: 36px;
+  font-weight: 300;
+  color: #000000;
+  margin-bottom: 8px;
+}
+
+.detail-subtitle {
+  font-size: 16px;
+  color: #666666;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.download-btn,
+.delete-btn {
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #000000;
+  background-color: #ffffff;
+  color: #000000;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.download-btn:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.delete-btn {
+  border-color: #d32f2f;
+  color: #d32f2f;
+}
+
+.delete-btn:hover {
+  background-color: #d32f2f;
+  color: #ffffff;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.detail-section {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  padding: 30px;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 400;
+  color: #000000;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  background-color: #fafafa;
+}
+
+.metric-label {
+  font-size: 14px;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.competitors-table {
+  overflow-x: auto;
+}
+
+.competitors-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.competitors-table th,
+.competitors-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.competitors-table th {
+  font-weight: 500;
+  color: #000000;
+  background-color: #f5f5f5;
+}
+
+.competitors-table td {
+  color: #333333;
+}
+
+.brand-name {
+  font-weight: 500;
+  color: #000000;
+}
+
+.highlight-row {
+  background-color: #fffbf0;
+}
+
+.highlight-row td {
+  font-weight: 500;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+}
+
+.summary-label {
+  font-size: 14px;
+  color: #666666;
+}
+
+.summary-value {
+  font-size: 18px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.status-completed {
+  color: #4caf50;
+  text-transform: uppercase;
+  font-size: 14px;
+}
+
+.loading-message,
+.error-message {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 16px;
+  color: #666666;
+}
+
+.error-message {
+  color: #d32f2f;
+}
+
+@media (max-width: 768px) {
+  .analysis-detail-container {
+    padding: 20px;
+  }
+  
+  .detail-title {
+    font-size: 28px;
+  }
+  
+  .detail-actions {
+    flex-direction: column;
+  }
+  
+  .download-btn,
+  .delete-btn {
+    width: 100%;
+  }
+  
+  .detail-section {
+    padding: 20px;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .summary-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+

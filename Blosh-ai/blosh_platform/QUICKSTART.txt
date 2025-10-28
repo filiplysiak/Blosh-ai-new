@@ -1,0 +1,52 @@
+BLOSH PLATFORM - QUICK START GUIDE
+===================================
+
+PASSWORD: Bloshai12!
+
+OPTION 1 - AUTOMATIC START (RECOMMENDED):
+------------------------------------------
+1. Open Terminal
+2. cd /Users/max/Documents/GitHub/Blosh-ai/blosh_platform
+3. chmod +x start.sh
+4. ./start.sh
+
+The script will:
+- Install all dependencies automatically
+- Start backend on http://localhost:5000
+- Start frontend on http://localhost:3000
+- Open browser automatically
+
+OPTION 2 - MANUAL START:
+------------------------
+Terminal 1 (Backend):
+  cd blosh_platform/backend
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install -r requirements.txt
+  python app.py
+
+Terminal 2 (Frontend):
+  cd blosh_platform/frontend
+  npm install
+  npm start
+
+TROUBLESHOOTING:
+----------------
+If you get CORS errors:
+1. Make sure backend is running on port 5000
+2. Make sure frontend is running on port 3000
+3. Restart both servers
+4. Clear browser cache
+
+If you get port already in use:
+  kill -9 $(lsof -ti:5000)  # Kill backend
+  kill -9 $(lsof -ti:3000)  # Kill frontend
+
+FEATURES:
+---------
+✓ Password authentication (no signup)
+✓ Session persistence (stays logged in)
+✓ Responsive design (mobile & desktop)
+✓ Toast notifications
+✓ Clean Blosh styling
+

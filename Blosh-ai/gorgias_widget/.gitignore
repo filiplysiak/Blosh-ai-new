@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.log
+ngrok.exe
+ngrok_output.txt
+.env
+*.txt
+!requirements.txt
+!Procfile
+
