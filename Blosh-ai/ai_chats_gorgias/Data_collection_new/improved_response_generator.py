@@ -148,13 +148,17 @@ def build_system_prompt(customer_name, brand, context, knowledge):
     instructions_text = '\n'.join(specific_instructions) if specific_instructions else "Geen speciale instructies"
     
     # Build full prompt
+    newline = "\n"
+    knowledge_section = f"RELEVANTE KENNIS:{newline}{knowledge}" if knowledge else ""
+    instructions_section = f"ACTIES VOOR DIT BERICHT:{newline}{instructions_text}" if specific_instructions else ""
+    
     prompt = f"""Je bent {brand} klantenservice medewerker.
 
 {context_summary}
 
-{"RELEVANTE KENNIS:\n" + knowledge if knowledge else ""}
+{knowledge_section}
 
-{"ACTIES VOOR DIT BERICHT:\n" + instructions_text if specific_instructions else ""}
+{instructions_section}
 
 ALGEMENE REGELS (ALTIJD VOLGEN):
 1. Begin ALTIJD met "Hi {customer_name}," (of "Hi," als naam leeg/onbekend is)
