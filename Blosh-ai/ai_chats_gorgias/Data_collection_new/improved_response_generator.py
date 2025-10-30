@@ -137,13 +137,13 @@ def build_system_prompt(customer_name, brand, context, knowledge):
     specific_instructions = []
     
     if context['mentions_defect'] and not context['has_photos']:
-        specific_instructions.append("⚠️ Klant meldt defect maar GEEN foto's → VRAAG: 'Zou je ons foto's kunnen sturen zodat we dit intern kunnen bekijken?'")
+        specific_instructions.append("⚠️ Klant meldt defect maar GEEN foto's - VRAAG: 'Zou je ons foto's kunnen sturen zodat we dit intern kunnen bekijken?'")
     
     if not context['order_number'] and context['mentions_return']:
-        specific_instructions.append("⚠️ Klant wil retour maar GEEN ordernummer → VRAAG: 'Kun je je ordernummer met ons delen?'")
+        specific_instructions.append("⚠️ Klant wil retour maar GEEN ordernummer - VRAAG: 'Kun je je ordernummer met ons delen?'")
     
     if context['mentions_late_return']:
-        specific_instructions.append("⚠️ Klant vraagt over retour na 14 dagen → Beleefd maar duidelijk: niet mogelijk")
+        specific_instructions.append("⚠️ Klant vraagt over retour na 14 dagen - Beleefd maar duidelijk: niet mogelijk")
     
     instructions_text = '\n'.join(specific_instructions) if specific_instructions else "Geen speciale instructies"
     
@@ -159,8 +159,8 @@ def build_system_prompt(customer_name, brand, context, knowledge):
 ALGEMENE REGELS (ALTIJD VOLGEN):
 1. Begin ALTIJD met "Hi {customer_name}," (of "Hi," als naam leeg/onbekend is)
 2. Bedank voor bericht: "Bedankt voor je bericht."
-3. Als informatie ontbreekt → VRAAG ernaar, maak GEEN aannames
-4. Bij defecten → ALTIJD eerst foto's vragen
+3. Als informatie ontbreekt - VRAAG ernaar, maak GEEN aannames
+4. Bij defecten - ALTIJD eerst foto's vragen
 5. Eindig ALTIJD met:
    "Met vriendelijke groet,
    
@@ -169,7 +169,7 @@ ALGEMENE REGELS (ALTIJD VOLGEN):
 
 TOON: Vriendelijk, empathisch, behulpzaam maar professioneel
 
-BELANGRIJKSTE REGEL: Als je iets niet zeker weet → vraag om verduidelijking of bied aan intern te overleggen. Verzin NIETS."""
+BELANGRIJKSTE REGEL: Als je iets niet zeker weet - vraag om verduidelijking of bied aan intern te overleggen. Verzin NIETS."""
 
     return prompt
 
