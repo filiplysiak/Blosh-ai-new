@@ -133,6 +133,21 @@ def extract_ticket_info(ticket_data):
 # API ENDPOINTS
 # ============================================================================
 
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Gorgias AI Widget API',
+        'version': '1.0',
+        'endpoints': {
+            'health': '/health',
+            'suggest': '/api/suggest',
+            'widget': '/widget/<ticket_id>',
+            'feedback': '/api/feedback'
+        }
+    })
+
 @app.route('/health', methods=['GET'])
 def health():
     """Health check"""
