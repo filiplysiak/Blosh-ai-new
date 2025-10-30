@@ -1,0 +1,71 @@
+================================================================================
+GORGIAS AI WIDGET - FILES OVERVIEW
+================================================================================
+
+📦 ESSENTIAL FILES (for deployment)
+────────────────────────────────────────────────────────────────────────────
+✅ API_widget_server.py              Main server - DEPLOY THIS
+✅ improved_response_generator.py    AI logic with your fine-tuned model
+✅ API_widget_requirements.txt       Python dependencies
+✅ Procfile                          Railway/Heroku deployment config
+✅ README.md                         ← START HERE! Complete setup guide
+
+📚 REFERENCE FILES (optional, for improvement)
+────────────────────────────────────────────────────────────────────────────
+📖 IMPROVE_WITHOUT_RETRAINING.md    Tips to improve response quality
+📖 evaluate_simple.py                Script to test model locally
+📖 quick_improvements.py             Quick optimization script
+
+📁 DATA FILES (reference only, not needed for deployment)
+────────────────────────────────────────────────────────────────────────────
+📂 data/                             Training data used for fine-tuning
+   ├── training_chat_multiple_*.jsonl
+   ├── training_chat_single_*.jsonl
+   ├── training_mail_multiple_*.jsonl
+   └── training_mail_single_*.jsonl
+
+📂 data_processing/                  Scripts used to prepare training data
+   ├── clean_and_prepare_data.py
+   └── collect_mail_data.py
+
+📂 notes/                            Evaluation reports
+   └── EVALUATION_REPORT.html
+
+================================================================================
+QUICK START (3 STEPS)
+================================================================================
+
+1. READ:   Open README.md and follow Step 1-4
+
+2. DEPLOY: Push to GitHub → Deploy on Railway → Add environment variables
+
+3. SETUP:  Configure widget in Gorgias with iframe code
+
+That's it! Your widget will be live in Gorgias sidebar.
+
+================================================================================
+WHAT WAS DELETED (trash files removed)
+================================================================================
+
+❌ API_widget_deploy.md              (redundant - merged into README.md)
+❌ API_widget_setup.md               (redundant - merged into README.md)
+❌ DEPLOY_GORGIAS_WIDGET.md         (redundant - merged into README.md)
+❌ DEPLOYMENT_CHECKLIST.md          (redundant - merged into README.md)
+❌ ENV_SETUP.md                      (redundant - merged into README.md)
+❌ QUICK_START.md                    (redundant - merged into README.md)
+❌ gorgias_integration_simple.py     (unused - using API_widget_server.py)
+❌ gorgias_sidebar_widget.py         (unused - using API_widget_server.py)
+❌ run_widget_local.bat              (unnecessary - command in README.md)
+
+All guides consolidated into ONE clear README.md file!
+
+================================================================================
+NEED HELP?
+================================================================================
+
+→ Open README.md and start with Step 1
+→ Follow the 4 steps exactly (takes 30 minutes)
+→ Check troubleshooting section if issues arise
+
+================================================================================
+
