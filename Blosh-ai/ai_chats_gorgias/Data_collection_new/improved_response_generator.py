@@ -9,9 +9,21 @@ import json
 from openai import OpenAI
 from datetime import datetime
 
-# Initialize client
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+# Model ID
 FINETUNED_MODEL_ID = "ft:gpt-4.1-mini-2025-04-14:personal:blosh-mail-v3-optimized:CVTnPZJB"
+
+# Initialize client (lazy-loaded)
+_client = None
+
+def get_client():
+    """Get or create OpenAI client"""
+    global _client
+    if _client is None:
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required")
+        _client = OpenAI(api_key=api_key)
+    return _client
 
 # ============================================================================
 # KNOWLEDGE BASE
@@ -203,6 +215,7 @@ def generate_response(customer_message, customer_name="", order_number=None,
     
     # Step 5: Generate response with optimal parameters
     try:
+        client = get_client()  # Get the OpenAI client
         response = client.chat.completions.create(
             model=FINETUNED_MODEL_ID,
             messages=[

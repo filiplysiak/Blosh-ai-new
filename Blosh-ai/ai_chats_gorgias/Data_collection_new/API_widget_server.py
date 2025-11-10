@@ -21,6 +21,10 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 GORGIAS_AUTH = os.getenv('GORGIAS_AUTH')
 GORGIAS_BASE_URL = os.getenv('GORGIAS_BASE_URL', 'https://freebirdicons.gorgias.com/api')
 
+# Validate required environment variables
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY environment variable is required")
+
 # Set OpenAI key for response generator
 os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
 
@@ -692,27 +696,35 @@ def widget(ticket_id):
 # ============================================================================
 
 if __name__ == '__main__':
-    logger.info("="*60)
-    logger.info("🚀 Gorgias AI Widget Server")
-    logger.info("="*60)
-    logger.info(f"OpenAI API Key: {'✓ Set' if OPENAI_API_KEY else '✗ Not Set'}")
-    logger.info(f"Gorgias Auth: {'✓ Set' if GORGIAS_AUTH else '✗ Not Set'}")
-    logger.info(f"Gorgias URL: {GORGIAS_BASE_URL}")
-    logger.info("="*60)
-    logger.info("")
-    logger.info("Endpoints:")
-    logger.info("  GET  /health                  - Health check")
-    logger.info("  POST /api/suggest             - Generate AI suggestion")
-    logger.info("  POST /api/feedback            - Record feedback")
-    logger.info("  GET  /widget/<ticket_id>      - Widget interface")
-    logger.info("")
-    logger.info("="*60)
-    
-    # Run server
-    port = int(os.getenv('PORT', 5000))
-    app.run(
-        host='0.0.0.0',
-        port=port,
-        debug=os.getenv('FLASK_ENV') == 'development'
-    )
+    try:
+        logger.info("="*60)
+        logger.info("🚀 Gorgias AI Widget Server")
+        logger.info("="*60)
+        logger.info(f"OpenAI API Key: {'✓ Set' if OPENAI_API_KEY else '✗ Not Set'}")
+        logger.info(f"Gorgias Auth: {'✓ Set' if GORGIAS_AUTH else '✗ Not Set'}")
+        logger.info(f"Gorgias URL: {GORGIAS_BASE_URL}")
+        logger.info("="*60)
+        logger.info("")
+        logger.info("Endpoints:")
+        logger.info("  GET  /health                  - Health check")
+        logger.info("  POST /api/suggest             - Generate AI suggestion")
+        logger.info("  POST /api/feedback            - Record feedback")
+        logger.info("  GET  /widget/<ticket_id>      - Widget interface")
+        logger.info("")
+        logger.info("="*60)
+        
+        # Run server
+        port = int(os.getenv('PORT', 5000))
+        app.run(
+            host='0.0.0.0',
+            port=port,
+            debug=os.getenv('FLASK_ENV') == 'development'
+        )
+    except ValueError as e:
+        logger.error(f"❌ Configuration Error: {str(e)}")
+        logger.error("Please set the required environment variables in Railway:")
+        logger.error("  - OPENAI_API_KEY (required)")
+        logger.error("  - GORGIAS_AUTH (optional, for fetching ticket data)")
+        logger.error("  - GORGIAS_BASE_URL (optional, defaults to freebirdicons)")
+        raise
 
