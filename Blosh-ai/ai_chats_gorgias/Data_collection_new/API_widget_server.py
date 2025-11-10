@@ -384,13 +384,116 @@ def record_feedback():
 # WIDGET ENDPOINT
 # ============================================================================
 
-@app.route('/widget/<ticket_id>', methods=['GET'])
+@app.route('/widget/<ticket_id>', methods=['GET', 'POST'])
 def widget(ticket_id):
     """
     Gorgias sidebar widget - displays AI suggestion in an iframe
     This endpoint returns full HTML that Gorgias will render in the sidebar
+    
+    Accepts both GET (for iframe display) and POST (for HTTP integration trigger)
     """
-    logger.info(f"Widget requested for ticket {ticket_id}")
+    # If POST request from HTTP integration, trigger suggestion generation
+    if request.method == 'POST':
+        logger.info(f"POST request to widget for ticket {ticket_id} - triggering suggestion generation")
+        
+        # Extract data from POST body
+        try:
+            raw_data = request.get_json()
+            
+            # Handle Gorgias form array format
+            if isinstance(raw_data, list) and len(raw_data) > 0:
+                if 'key' in raw_data[0] and 'value' in raw_data[0]:
+                    data = {item['key']: item['value'] for item in raw_data}
+                else:
+                    data = raw_data[0]
+            elif isinstance(raw_data, dict):
+                data = raw_data
+            else:
+                data = {}
+            
+            # Extract fields
+            customer_name = data.get('customer_name', '')
+            message = data.get('message', '')
+            order_number = data.get('order_number', '')
+            subject = data.get('subject', '')
+            
+            logger.info(f"POST data: ticket_id={ticket_id}, customer={customer_name}, has_message={bool(message)}")
+            
+            # Start background processing if not already cached
+            if ticket_id not in suggestions_cache:
+                import threading
+                
+                def process_in_background():
+                    try:
+                        logger.info(f"Background: Starting generation for ticket {ticket_id}")
+                        
+                        if not OPENAI_API_KEY:
+                            logger.error(f"Background: OPENAI_API_KEY not set")
+                            return
+                        
+                        # Use provided message or fetch from Gorgias
+                        msg = message
+                        if not msg:
+                            logger.info(f"Background: Fetching ticket data from Gorgias")
+                            ticket_data = get_ticket_data(ticket_id)
+                            if ticket_data:
+                                info = extract_ticket_info(ticket_data)
+                                if info:
+                                    msg = info['message']
+                                    customer_name = info.get('customer_name', customer_name)
+                                    order_number = info.get('order_number', order_number)
+                        
+                        if not msg:
+                            logger.error(f"Background: No message found for ticket {ticket_id}")
+                            return
+                        
+                        logger.info(f"Background: Generating AI response for ticket {ticket_id}")
+                        
+                        result = generate_response(
+                            customer_message=msg,
+                            customer_name=customer_name,
+                            order_number=order_number,
+                            subject=subject
+                        )
+                        
+                        if result:
+                            response_data = {
+                                'ticket_id': ticket_id,
+                                'suggestion': result['response'],
+                                'quality_score': result['quality_score'],
+                                'confidence': result['quality_score'],
+                                'brand': result['brand'],
+                                'warnings': result.get('warnings', []),
+                                'approved': result['approved'],
+                                'timestamp': datetime.now().isoformat(),
+                                'cached': False
+                            }
+                            suggestions_cache[ticket_id] = response_data
+                            logger.info(f"Background: ✅ Generated suggestion for {ticket_id} - Quality: {result['quality_score']}")
+                        else:
+                            logger.error(f"Background: ❌ Failed to generate response for {ticket_id}")
+                    
+                    except Exception as e:
+                        logger.error(f"Background: ❌ Error: {str(e)}", exc_info=True)
+                
+                thread = threading.Thread(target=process_in_background)
+                thread.daemon = True
+                thread.start()
+            
+            # Return success response for POST
+            return jsonify({
+                'status': 'success',
+                'ticket_id': ticket_id,
+                'message': 'Suggestion generation triggered',
+                'timestamp': datetime.now().isoformat()
+            }), 200
+            
+        except Exception as e:
+            logger.error(f"Error processing POST to widget: {str(e)}", exc_info=True)
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+    
+    # GET request - return widget HTML
+    logger.info(f"GET request to widget for ticket {ticket_id}")
     
     widget_html = """
 <!DOCTYPE html>

@@ -1,25 +1,15 @@
-# Gorgias AI Widget - Complete Setup Guide
+# Gorgias AI Widget - Setup Guide
 
-This is your **AI-powered side panel widget** for Gorgias that displays suggested responses using your fine-tuned GPT model.
+AI-powered response suggestions for Gorgias using fine-tuned GPT-4o-mini.
 
----
+## Core Files
 
-## 📁 Files You Need (Only These 4)
+- `API_widget_server.py` - Flask API server
+- `improved_response_generator.py` - AI response logic
+- `requirements.txt` - Python dependencies
+- `Procfile` - Railway deployment config
 
-```
-Data_collection_new/
-├── API_widget_server.py              ← The server (deploy this)
-├── improved_response_generator.py    ← AI logic with your fine-tuned model
-├── API_widget_requirements.txt       ← Python dependencies
-├── Procfile                          ← Deployment config for Railway/Heroku
-└── README.md                         ← This guide
-```
-
-**That's it!** Everything else is optional (training data, evaluation scripts, etc.)
-
----
-
-## 🚀 Step-by-Step Setup (30 minutes)
+## Quick Setup
 
 ### Step 1: Get Your API Keys (5 minutes)
 
@@ -138,207 +128,41 @@ Should return:
 
 ---
 
-### Step 4: Test It! (5 minutes)
+### Step 4: Test
 
-1. **Open any ticket** in Gorgias (one with customer messages)
-2. **Check the right sidebar**
-3. **You should see**:
-   - 🤖 AI Suggestion header
-   - Loading spinner (briefly)
-   - Generated response
-   - Quality score badge (High/Medium/Low)
-   - Brand tag (Freebird Icons or Simple the Brand)
-   - "Use Response" and "Copy" buttons
-
-4. **Test the buttons**:
-   - Click "Copy" → text copies to clipboard
+1. Open ticket in Gorgias
+2. Check right sidebar for AI suggestions
+3. Test Copy/Use buttons
    - Click "Use Response" → copies and records feedback
    - Click feedback buttons → tracks your feedback
 
 ---
 
-## ✅ That's It!
+## Troubleshooting
 
-Your widget is now live and working! 🎉
+**Widget loading forever**: Check Railway logs, verify environment variables  
+**No message found**: Verify `GORGIAS_AUTH` format: `Basic [base64]`  
+**Widget not appearing**: Enable widget in Gorgias Settings → Widgets  
 
----
-
-## 🔧 Troubleshooting
-
-### Widget shows "Loading..." forever
-
-**Check**:
-1. Is your API running? Test: `curl https://YOUR_URL/health`
-2. Check Railway logs: Project → Logs tab
-3. Open browser console (F12) for JavaScript errors
-
-**Fix**:
-- Verify environment variables are set correctly
-- Make sure ticket has customer messages (not just internal notes)
-- Refresh the page
-
----
-
-### "No message found" error
-
-**Cause**: Ticket has no customer messages or Gorgias API auth failed
-
-**Fix**:
-1. Check ticket has actual customer messages
-2. Verify `GORGIAS_AUTH` is correctly formatted: `Basic base64string`
-3. Test Gorgias API:
-```bash
-curl https://freebirdicons.gorgias.com/api/tickets/123 \
-  -H "Authorization: YOUR_GORGIAS_AUTH"
-```
-
----
-
-### Quality scores are low
-
-**Check**: Review warnings shown in the widget
-
-**Improve**: Edit `improved_response_generator.py`:
-- Line 20-38: Update knowledge base
-- Line 122-173: Adjust system prompts
-- Line 44-59: Modify brand detection
-
-See `IMPROVE_WITHOUT_RETRAINING.md` for detailed tips.
-
----
-
-### Widget not appearing in Gorgias
-
-**Fix**:
-1. Go to Settings → Widgets
-2. Make sure widget is **enabled**
-3. Check **display conditions** match your ticket
-4. Try refreshing the page
-5. Check sidebar has space for the widget
-
----
-
-## 🧪 Local Testing (Optional)
-
-Want to test locally before deploying?
+## Local Testing
 
 ```bash
-# Set environment variables
-set OPENAI_API_KEY=sk-proj-your-key
-set GORGIAS_AUTH=Basic your-auth
-set GORGIAS_BASE_URL=https://freebirdicons.gorgias.com/api
-
-# Install dependencies
-cd c:\GitHub\Blosh-ai-new\Blosh-ai\ai_chats_gorgias\Data_collection_new
-pip install -r API_widget_requirements.txt
-
-# Run server
+export OPENAI_API_KEY=sk-proj-...
+export GORGIAS_AUTH=Basic ...
 python API_widget_server.py
-
-# Test in browser
-# Open: http://localhost:5000/widget/test123
 ```
 
----
+## Features
 
-## 📊 What It Does
+- Auto-fetches ticket data from Gorgias
+- Fine-tuned model: `ft:gpt-4.1-mini-2025-04-14:personal:blosh-mail-v3-optimized:CVTnPZJB`
+- Brand detection (Freebird/Simple)
+- Quality scoring and validation
+- Feedback tracking
 
-Your widget:
+## Cost Estimate
 
-✅ **Fetches ticket data** from Gorgias API automatically  
-✅ **Generates responses** using your fine-tuned model:  
-   `ft:gpt-4.1-mini-2025-04-14:personal:blosh-mail-v3-optimized:CVTnPZJB`  
-✅ **Detects brand** (Freebird Icons vs Simple the Brand)  
-✅ **Scores quality** (High/Medium/Low confidence)  
-✅ **Auto-fixes** common issues (wrong signatures, missing greetings)  
-✅ **Displays warnings** for low quality  
-✅ **Tracks feedback** (Used/Edited/Ignored)  
-✅ **Caches suggestions** for faster repeat loads  
-
----
-
-## 💰 Costs
-
-**Hosting** (Railway): $0-10/month (free tier available)  
-**OpenAI API**: ~$0.0003 per suggestion  
-- 100 tickets/day = ~$9/month  
-- 500 tickets/day = ~$45/month  
-
-**Total**: $10-60/month depending on volume
-
----
-
-## 🎯 API Endpoints
-
-Your deployed server has:
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check - always test this first |
-| `/api/suggest` | POST | Generate AI suggestion (JSON) |
-| `/widget/{ticket_id}` | GET | Widget HTML (used by Gorgias iframe) |
-| `/api/feedback` | POST | Record agent feedback |
-
----
-
-## 🔐 Security Notes
-
-- ✅ API keys stored as environment variables (not in code)
-- ✅ CORS enabled for Gorgias domain
-- ✅ No data stored locally (stateless)
-- ✅ Gorgias API auth required for ticket access
-
----
-
-## 📈 Next Steps
-
-After deployment:
-
-1. **Week 1**: Test with 10-20 tickets, gather agent feedback
-2. **Week 2-4**: Monitor quality scores, optimize prompts if needed
-3. **Month 2+**: Analyze usage, consider retraining model with new data
-
----
-
-## 🆘 Need More Help?
-
-**Files in this directory**:
-- `IMPROVE_WITHOUT_RETRAINING.md` - Tips to improve response quality
-- `evaluate_simple.py` - Script to test your model locally
-- `data/` - Your training data (reference only)
-
-**Check Railway Logs**:
-1. Go to Railway dashboard
-2. Select your project
-3. Click "Logs" tab
-4. Look for errors or warnings
-
-**Common mistakes**:
-- ❌ Forgot "Basic " prefix in `GORGIAS_AUTH`
-- ❌ Wrong Gorgias subdomain in `GORGIAS_BASE_URL`
-- ❌ Forgot to replace `YOUR_URL` in iframe code
-- ❌ Widget display conditions too restrictive
-
----
-
-## 🎉 Success!
-
-When everything works, you'll see:
-
-1. ✅ Railway deployment successful
-2. ✅ Health check returns healthy status
-3. ✅ Widget appears in Gorgias sidebar
-4. ✅ Suggestions generate in 2-5 seconds
-5. ✅ Quality scores mostly High or Medium
-6. ✅ Agents can copy/use suggestions easily
-
-**Questions?** Review the troubleshooting section above.
-
----
-
-**Built with**: Flask, OpenAI API, Gorgias API, fine-tuned GPT-4o-mini model
-
-**Deployment time**: ~30 minutes  
-**Quality**: 70-80% excellent responses  
-**Response time**: 2-5 seconds  
+- Railway: $5-20/month
+- OpenAI API: $9-45/month (usage-based)
+- Total: $14-65/month  
 
