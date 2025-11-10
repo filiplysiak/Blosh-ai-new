@@ -14,6 +14,7 @@
 OPENAI_API_KEY=sk-proj-...
 GORGIAS_AUTH=Basic [base64_encoded]
 GORGIAS_BASE_URL=https://freebirdicons.gorgias.com/api
+WIDGET_DB_PATH=/data/widget.db   # optional override, defaults to data/widget.db
 ```
 
 ---
@@ -23,8 +24,12 @@ GORGIAS_BASE_URL=https://freebirdicons.gorgias.com/api
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/health` | GET | Health check |
-| `/api/suggest` | POST | Generate AI suggestion |
-| `/api/suggest/<id>` | GET | Get cached suggestion |
+| `/` | GET | Service summary & stats |
+| `/api/suggest` | POST | Generate AI suggestion (async) |
+| `/api/suggest/<id>` | GET | Fetch stored suggestion |
+| `/api/stats` | GET | Database coverage stats + recent tickets |
+| `/api/init` | POST | Force re-initialisation & backfill |
+| `/api/sync` | POST | Trigger manual ticket sync |
 | `/widget/<id>` | GET, POST | Widget HTML (GET) or trigger generation (POST) |
 | `/api/feedback` | POST | Record feedback |
 
@@ -79,13 +84,13 @@ railway up
 
 ## Key Features
 
-- ✅ Async processing (avoids 5s timeout)
-- ✅ Handles multiple Gorgias data formats
-- ✅ Brand detection (Freebird/Simple)
-- ✅ Quality scoring and validation
-- ✅ Auto-fixes common issues
-- ✅ In-memory caching
-- ✅ Feedback tracking
+- ✅ Persistent SQLite storage for tickets & AI suggestions
+- ✅ Automatic backfill of the 10 most recent tickets at startup
+- ✅ Background scheduler keeps the newest 10 tickets pre-generated
+- ✅ Handles multiple Gorgias data formats & channels
+- ✅ Brand detection (Freebird/Simple) with quality scoring & safety checks
+- ✅ Inline sidebar widget with copy/toast UX (no new tabs)
+- ✅ Feedback tracking endpoint for future analytics
 
 ---
 

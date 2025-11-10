@@ -4,9 +4,13 @@ AI-powered response suggestions for Gorgias using fine-tuned GPT-4o-mini.
 
 ## Core Files
 
-- `API_widget_server.py` - Flask API server
-- `improved_response_generator.py` - AI response logic
-- `requirements.txt` - Python dependencies
+- `API_widget_server.py` - Flask API server & widget HTML
+- `database.py` - SQLite persistence layer for tickets & suggestions
+- `ticket_sync.py` - Sync utilities pulling tickets from Gorgias
+- `suggestion_manager.py` - Background generation & pre-generation orchestration
+- `gorgias_client.py` - Thin Gorgias REST API client
+- `improved_response_generator.py` - AI response logic (fine-tuned model)
+- `requirements.txt` - Python dependencies (includes APScheduler for cron jobs)
 - `Procfile` - Railway deployment config
 
 ## Quick Setup
@@ -73,6 +77,10 @@ Basic your-base64-encoded-auth-here
 
 GORGIAS_BASE_URL
 https://freebirdicons.gorgias.com/api
+
+# optional – override SQLite location (defaults to data/widget.db)
+WIDGET_DB_PATH
+/data/widget.db
 ```
 
 **Important**: Replace `freebirdicons` with YOUR Gorgias subdomain!
@@ -154,11 +162,13 @@ python API_widget_server.py
 
 ## Features
 
-- Auto-fetches ticket data from Gorgias
+- Persistent SQLite storage of all tickets & AI suggestions
+- Automatic sync of latest tickets from Gorgias (boot + every 5 minutes)
+- Pre-generation for the 10 most recent tickets via background worker pool
+- On-demand generation per ticket with inline sidebar UI (no popups)
 - Fine-tuned model: `ft:gpt-4.1-mini-2025-04-14:personal:blosh-mail-v3-optimized:CVTnPZJB`
-- Brand detection (Freebird/Simple)
-- Quality scoring and validation
-- Feedback tracking
+- Brand detection (Freebird/Simple) with quality scoring & safety checks
+- Feedback tracking endpoint for future analytics
 
 ## Cost Estimate
 
