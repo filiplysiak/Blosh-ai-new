@@ -1,0 +1,974 @@
+"""
+Gorgias Widget API Server
+Flask server that provides AI response suggestions for Gorgias tickets
+"""
+
+from flask import Flask, request, jsonify, render_template_string
+from flask_cors import CORS
+import os
+import logging
+from datetime import datetime
+from improved_response_generator import generate_response
+import base64
+import requests
+
+# Initialize Flask
+app = Flask(__name__)
+CORS(app, resources={
+    r"/*": {
+        "origins": ["https://*.gorgias.com", "https://freebirdicons.gorgias.com"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
+
+# Configuration
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+GORGIAS_AUTH = os.getenv('GORGIAS_AUTH')
+GORGIAS_BASE_URL = os.getenv('GORGIAS_BASE_URL', 'https://freebirdicons.gorgias.com/api')
+
+# Set OpenAI key for response generator (only if set)
+if OPENAI_API_KEY:
+    os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
+
+# Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Simple cache for suggestions (in production, use Redis)
+suggestions_cache = {}
+
+# ============================================================================
+# GORGIAS API HELPERS
+# ============================================================================
+
+def get_gorgias_headers():
+    """Get headers for Gorgias API requests"""
+    return {
+        'accept': 'application/json',
+        'authorization': GORGIAS_AUTH,
+        'content-type': 'application/json'
+    }
+
+def get_ticket_data(ticket_id):
+    """Fetch ticket data from Gorgias API"""
+    try:
+        url = f"{GORGIAS_BASE_URL}/tickets/{ticket_id}"
+        response = requests.get(url, headers=get_gorgias_headers(), timeout=10)
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.error(f"Failed to fetch ticket {ticket_id}: {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        logger.error(f"Error fetching ticket: {str(e)}")
+        return None
+
+def get_ticket_messages(ticket_id):
+    """Fetch ticket messages from Gorgias API"""
+    try:
+        url = f"{GORGIAS_BASE_URL}/tickets/{ticket_id}/messages"
+        response = requests.get(url, headers=get_gorgias_headers(), timeout=10)
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.error(f"Failed to fetch messages for ticket {ticket_id}: {response.status_code}")
+            return None
+    except Exception as e:
+        logger.error(f"Error fetching messages: {str(e)}")
+        return None
+
+def extract_ticket_info(ticket_data):
+    """Extract relevant info from Gorgias ticket data"""
+    if not ticket_data:
+        logger.error("extract_ticket_info: ticket_data is None")
+        return None
+    
+    logger.info(f"Extracting info from ticket {ticket_data.get('id')}")
+    
+    # Get customer info
+    customer = ticket_data.get('customer', {})
+    customer_name = customer.get('firstname', '') or customer.get('name', '').split()[0] if customer.get('name') else ''
+    
+    # Get last message from messages endpoint or from ticket data
+    last_customer_message = ''
+    messages = ticket_data.get('messages', [])
+    
+    logger.info(f"Ticket has {len(messages)} messages")
+    
+    if messages:
+        # Try to find last customer message
+        for msg in reversed(messages):
+            from_agent = msg.get('from_agent', True)
+            body_text = msg.get('body_text', '')
+            
+            logger.info(f"Message from_agent={from_agent}, has_text={bool(body_text)}")
+            
+            # Get message from customer (from_agent=False)
+            if not from_agent and body_text:
+                last_customer_message = body_text
+                logger.info(f"Found customer message: {body_text[:100]}...")
+                break
+    
+    # Fallback: try to get from ticket's last_message
+    if not last_customer_message and 'last_message' in ticket_data:
+        last_customer_message = ticket_data.get('last_message', {}).get('body_text', '')
+        logger.info(f"Using last_message fallback: {last_customer_message[:100] if last_customer_message else 'empty'}...")
+    
+    # Try to extract order number from tags or subject
+    tags = ticket_data.get('tags', [])
+    order_number = None
+    
+    for tag in tags:
+        if isinstance(tag, dict):
+            tag_name = tag.get('name', '')
+        else:
+            tag_name = str(tag)
+        
+        # Look for order numbers in tags
+        if tag_name.startswith('102') or tag_name.startswith('203'):
+            order_number = tag_name
+            break
+    
+    # Also try to find order number in subject
+    if not order_number:
+        subject = ticket_data.get('subject', '')
+        import re
+        order_match = re.search(r'\b(102\d{6}|203\d{5})\b', subject)
+        if order_match:
+            order_number = order_match.group(1)
+    
+    return {
+        'ticket_id': ticket_data.get('id'),
+        'customer_name': customer_name,
+        'customer_email': customer.get('email', ''),
+        'subject': ticket_data.get('subject', ''),
+        'message': last_customer_message,
+        'order_number': order_number,
+        'channel': ticket_data.get('channel', 'email')
+    }
+
+# ============================================================================
+# API ENDPOINTS
+# ============================================================================
+
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Gorgias AI Widget API',
+        'version': '2.0',
+        'endpoints': {
+            'health': '/health',
+            'suggest_post': 'POST /api/suggest - Generate suggestion (async)',
+            'suggest_get': 'GET /api/suggest/<ticket_id> - Get cached suggestion',
+            'widget': '/widget/<ticket_id>',
+            'feedback': '/api/feedback'
+        },
+        'note': 'POST /api/suggest returns 202 immediately. Use GET to retrieve result.'
+    })
+
+@app.route('/health', methods=['GET'])
+def health():
+    """Health check"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'cache_size': len(suggestions_cache),
+        'cached_tickets': list(suggestions_cache.keys())
+    })
+
+@app.route('/api/suggest', methods=['POST'])
+def suggest_response():
+    """
+    Generate AI suggestion for a ticket
+    
+    Gorgias has a 5-second timeout, so we respond immediately with 202 Accepted
+    and process in background. The suggestion is cached for widget access.
+    
+    Expects JSON (Gorgias format):
+    [
+        {"key": "ticket_id", "value": "123456"},
+        {"key": "customer_name", "value": "Petra"},
+        {"key": "message", "value": "Ik wil retour doen"},
+        {"key": "subject", "value": "Retour"}
+    ]
+    """
+    try:
+        raw_data = request.get_json()
+        
+        # Log the raw data for debugging
+        logger.info(f"Received raw data type: {type(raw_data)}")
+        
+        # Handle Gorgias form array format: [{"key": "ticket_id", "value": "123"}, ...]
+        if isinstance(raw_data, list):
+            # Check if it's Gorgias form format (array of key-value objects)
+            if len(raw_data) > 0 and isinstance(raw_data[0], dict):
+                if 'key' in raw_data[0] and 'value' in raw_data[0]:
+                    # Convert Gorgias form array to dict
+                    data = {item['key']: item['value'] for item in raw_data}
+                    logger.info(f"Converted Gorgias form array to dict")
+                else:
+                    # Simple list with one dict element
+                    data = raw_data[0]
+                    logger.info("Extracted data from list format")
+            else:
+                logger.error(f"Unexpected list format: {raw_data}")
+                return jsonify({'error': 'Invalid data format: expected dict or list with dict'}), 400
+        elif isinstance(raw_data, dict):
+            data = raw_data
+            logger.info("Using dict format directly")
+        else:
+            logger.error(f"Unexpected data type: {type(raw_data)}")
+            return jsonify({'error': f'Invalid data type: {type(raw_data)}'}), 400
+        
+        ticket_id = data.get('ticket_id')
+        
+        if not ticket_id:
+            return jsonify({'error': 'ticket_id required'}), 400
+        
+        logger.info(f"Request for ticket {ticket_id} - responding immediately to avoid timeout")
+        
+        # Check cache first
+        if ticket_id in suggestions_cache:
+            logger.info(f"Returning cached suggestion for {ticket_id}")
+            cached = suggestions_cache[ticket_id]
+            cached['cached'] = True
+            return jsonify(cached)
+        
+        # Extract info
+        customer_name = data.get('customer_name', '')
+        message = data.get('message', '')
+        order_number = data.get('order_number', '')
+        subject = data.get('subject', '')
+        
+        # Respond immediately to Gorgias (avoid 5-second timeout)
+        # We'll process in background and cache the result
+        import threading
+        
+        def process_in_background():
+            """Process AI generation in background"""
+            try:
+                logger.info(f"Background: Starting generation for ticket {ticket_id}")
+                
+                # Validate we have OpenAI key
+                if not OPENAI_API_KEY:
+                    logger.error(f"Background: OPENAI_API_KEY not set, cannot generate")
+                    return
+                
+                # If message is empty, try to fetch from Gorgias
+                msg = message
+                if not msg:
+                    logger.info(f"Background: Message empty, fetching from Gorgias API")
+                    ticket_data = get_ticket_data(ticket_id)
+                    if ticket_data:
+                        info = extract_ticket_info(ticket_data)
+                        if info:
+                            msg = info['message']
+                
+                if not msg:
+                    logger.error(f"Background: No message found for ticket {ticket_id}")
+                    return
+                
+                logger.info(f"Background: Calling AI model for ticket {ticket_id}")
+                
+                # Generate AI response
+                result = generate_response(
+                    customer_message=msg,
+                    customer_name=customer_name,
+                    order_number=order_number,
+                    subject=subject
+                )
+                
+                if result:
+                    # Cache the result
+                    response_data = {
+                        'ticket_id': ticket_id,
+                        'suggestion': result['response'],
+                        'quality_score': result['quality_score'],
+                        'confidence': result['quality_score'],
+                        'brand': result['brand'],
+                        'warnings': result.get('warnings', []),
+                        'approved': result['approved'],
+                        'timestamp': datetime.now().isoformat(),
+                        'cached': False
+                    }
+                    suggestions_cache[ticket_id] = response_data
+                    logger.info(f"Background: ✅ Generated and cached suggestion for {ticket_id} - Quality: {result['quality_score']}")
+                else:
+                    logger.error(f"Background: ❌ Failed to generate response for {ticket_id}")
+                    
+            except Exception as e:
+                logger.error(f"Background: ❌ Exception processing ticket {ticket_id}: {str(e)}", exc_info=True)
+                # Don't re-raise - we don't want background thread to crash the server
+        
+        # Start background processing
+        thread = threading.Thread(target=process_in_background)
+        thread.daemon = True
+        thread.start()
+        
+        # Respond immediately to Gorgias (webhook expects quick response)
+        logger.info(f"Responded 202 to Gorgias for ticket {ticket_id}, processing in background")
+        return jsonify({
+            'status': 'accepted',
+            'ticket_id': ticket_id,
+            'message': 'Processing started',
+            'timestamp': datetime.now().isoformat()
+        }), 200  # Changed to 200 so Gorgias sees it as success
+        
+    except Exception as e:
+        logger.error(f"Error in suggest_response: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/suggest/<ticket_id>', methods=['GET'])
+def get_suggestion(ticket_id):
+    """
+    Get cached suggestion for a ticket
+    Returns 404 if not ready yet
+    """
+    try:
+        logger.info(f"GET request for suggestion {ticket_id}, cache has {len(suggestions_cache)} items")
+        
+        if ticket_id in suggestions_cache:
+            logger.info(f"✅ Returning cached suggestion for {ticket_id}")
+            return jsonify(suggestions_cache[ticket_id])
+        else:
+            logger.info(f"❌ Suggestion {ticket_id} not in cache yet")
+            return jsonify({
+                'status': 'not_ready',
+                'ticket_id': ticket_id,
+                'message': 'Suggestion not ready yet. Please wait a few seconds.'
+            }), 404
+    except Exception as e:
+        logger.error(f"Error getting suggestion: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/feedback', methods=['POST'])
+def record_feedback():
+    """Record agent feedback on suggestions"""
+    try:
+        raw_data = request.get_json()
+        
+        # Handle Gorgias form array format
+        if isinstance(raw_data, list):
+            if len(raw_data) > 0 and isinstance(raw_data[0], dict):
+                if 'key' in raw_data[0] and 'value' in raw_data[0]:
+                    # Convert Gorgias form array to dict
+                    data = {item['key']: item['value'] for item in raw_data}
+                else:
+                    data = raw_data[0]
+            else:
+                return jsonify({'error': 'Invalid data format'}), 400
+        elif isinstance(raw_data, dict):
+            data = raw_data
+        else:
+            return jsonify({'error': f'Invalid data type: {type(raw_data)}'}), 400
+        
+        ticket_id = data.get('ticket_id')
+        feedback = data.get('feedback')  # 'used', 'edited', 'ignored'
+        
+        logger.info(f"Feedback for ticket {ticket_id}: {feedback}")
+        
+        # TODO: Store in database for analytics
+        
+        return jsonify({'status': 'success'})
+        
+    except Exception as e:
+        logger.error(f"Error recording feedback: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# WIDGET ENDPOINT
+# ============================================================================
+
+@app.route('/widget/<ticket_id>', methods=['GET', 'POST'])
+def widget(ticket_id):
+    """
+    Gorgias sidebar widget - displays AI suggestion in an iframe
+    This endpoint returns full HTML that Gorgias will render in the sidebar
+    
+    Accepts both GET (for iframe display) and POST (for HTTP integration trigger)
+    """
+    # If POST request from HTTP integration, trigger suggestion generation
+    if request.method == 'POST':
+        logger.info(f"POST request to widget for ticket {ticket_id} - triggering suggestion generation")
+        
+        # Extract data from POST body
+        try:
+            raw_data = request.get_json()
+            
+            # Handle Gorgias form array format
+            if isinstance(raw_data, list) and len(raw_data) > 0:
+                if 'key' in raw_data[0] and 'value' in raw_data[0]:
+                    data = {item['key']: item['value'] for item in raw_data}
+                else:
+                    data = raw_data[0]
+            elif isinstance(raw_data, dict):
+                data = raw_data
+            else:
+                data = {}
+            
+            # Extract fields
+            customer_name = data.get('customer_name', '')
+            message = data.get('message', '')
+            order_number = data.get('order_number', '')
+            subject = data.get('subject', '')
+            
+            logger.info(f"POST data: ticket_id={ticket_id}, customer={customer_name}, has_message={bool(message)}")
+            
+            # Start background processing if not already cached
+            if ticket_id not in suggestions_cache:
+                import threading
+                
+                def process_in_background():
+                    try:
+                        logger.info(f"Background: Starting generation for ticket {ticket_id}")
+                        
+                        if not OPENAI_API_KEY:
+                            logger.error(f"Background: OPENAI_API_KEY not set")
+                            return
+                        
+                        # Use provided message or fetch from Gorgias
+                        msg = message
+                        name = customer_name
+                        order = order_number
+                        subj = subject
+                        
+                        if not msg:
+                            logger.info(f"Background: Fetching ticket data from Gorgias")
+                            ticket_data = get_ticket_data(ticket_id)
+                            if ticket_data:
+                                info = extract_ticket_info(ticket_data)
+                                if info:
+                                    msg = info['message']
+                                    name = info.get('customer_name', name)
+                                    order = info.get('order_number', order)
+                        
+                        if not msg:
+                            logger.error(f"Background: No message found for ticket {ticket_id}")
+                            return
+                        
+                        logger.info(f"Background: Generating AI response for ticket {ticket_id}")
+                        
+                        result = generate_response(
+                            customer_message=msg,
+                            customer_name=name,
+                            order_number=order,
+                            subject=subj
+                        )
+                        
+                        if result:
+                            response_data = {
+                                'ticket_id': ticket_id,
+                                'suggestion': result['response'],
+                                'quality_score': result['quality_score'],
+                                'confidence': result['quality_score'],
+                                'brand': result['brand'],
+                                'warnings': result.get('warnings', []),
+                                'approved': result['approved'],
+                                'timestamp': datetime.now().isoformat(),
+                                'cached': False
+                            }
+                            suggestions_cache[ticket_id] = response_data
+                            logger.info(f"Background: ✅ Generated suggestion for {ticket_id} - Quality: {result['quality_score']}")
+                        else:
+                            logger.error(f"Background: ❌ Failed to generate response for {ticket_id}")
+                    
+                    except Exception as e:
+                        logger.error(f"Background: ❌ Error: {str(e)}", exc_info=True)
+                
+                thread = threading.Thread(target=process_in_background)
+                thread.daemon = True
+                thread.start()
+            
+            # Return success response for POST
+            return jsonify({
+                'status': 'success',
+                'ticket_id': ticket_id,
+                'message': 'Suggestion generation triggered',
+                'timestamp': datetime.now().isoformat()
+            }), 200
+            
+        except Exception as e:
+            logger.error(f"Error processing POST to widget: {str(e)}", exc_info=True)
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+    
+    # GET request - return widget HTML
+    logger.info(f"GET request to widget for ticket {ticket_id}")
+    
+    widget_html = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Suggestion</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            padding: 16px;
+            background: #f8f9fa;
+            font-size: 14px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .header h3 {
+            color: #2c3e50;
+            font-size: 16px;
+            flex: 1;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-high { background: #d4edda; color: #155724; }
+        .badge-medium { background: #fff3cd; color: #856404; }
+        .badge-low { background: #f8d7da; color: #721c24; }
+        
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2196f3;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .suggestion-box {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .suggestion-text {
+            background: #e7f3ff;
+            border-left: 4px solid #2196f3;
+            padding: 12px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #212529;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #2196f3;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1976d2;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(33,150,243,0.3);
+        }
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+        
+        .info {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin: 12px 0;
+            font-size: 12px;
+            color: #856404;
+            border-radius: 4px;
+        }
+        .warning-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px;
+            color: #721c24;
+            border-radius: 4px;
+        }
+        
+        .feedback {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+        }
+        .feedback-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        .feedback-btns {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+        .feedback-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .feedback-btn:hover {
+            background: #e9ecef;
+        }
+        .feedback-btn.active {
+            background: #2196f3;
+            color: white;
+            border-color: #2196f3;
+        }
+        
+        .brand-tag {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h3>🤖 AI Suggestion</h3>
+    </div>
+    
+    <div id="content">
+        <div class="loading">
+            <div class="spinner"></div>
+            <div>Generating suggestion...</div>
+        </div>
+    </div>
+
+    <script>
+        const TICKET_ID = "{{ ticket_id }}";
+        const API_URL = window.location.origin;
+        
+        let currentSuggestion = null;
+        
+        async function loadSuggestion() {
+            try {
+                console.log(`Loading suggestion for ticket ${TICKET_ID}...`);
+                
+                // Try to get cached suggestion first
+                let response = await fetch(`${API_URL}/api/suggest/${TICKET_ID}`, {
+                    method: 'GET'
+                });
+                
+                console.log(`Initial check response: ${response.status}`);
+                
+                if (response.status === 404) {
+                    // Not cached yet, trigger generation
+                    console.log('Suggestion not cached, triggering generation...');
+                    
+                    await fetch(`${API_URL}/api/suggest`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            ticket_id: TICKET_ID
+                        })
+                    });
+                    
+                    // Poll for result (check every 2 seconds, max 10 attempts = 20 seconds)
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    
+                    // Update UI to show we're waiting
+                    document.getElementById('content').innerHTML = `
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Generating AI suggestion...</div>
+                            <div style="font-size: 12px; color: #6c757d; margin-top: 8px;">
+                                This takes 5-10 seconds
+                            </div>
+                        </div>
+                    `;
+                    
+                    while (attempts < maxAttempts) {
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+                        attempts++;
+                        
+                        console.log(`Polling attempt ${attempts}/${maxAttempts}...`);
+                        
+                        // Update progress
+                        document.getElementById('content').innerHTML = `
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <div>Generating AI suggestion...</div>
+                                <div style="font-size: 12px; color: #6c757d; margin-top: 8px;">
+                                    Checking... (${attempts * 2}s / ${maxAttempts * 2}s)
+                                </div>
+                            </div>
+                        `;
+                        
+                        response = await fetch(`${API_URL}/api/suggest/${TICKET_ID}`, {
+                            method: 'GET'
+                        });
+                        
+                        if (response.ok) {
+                            break; // Got the suggestion!
+                        }
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error('Suggestion generation timed out. Please refresh the page.');
+                    }
+                }
+                
+                const data = await response.json();
+                console.log('Received data:', data);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (data.status === 'not_ready') {
+                    throw new Error('Suggestion not ready yet. Please refresh the page in a few seconds.');
+                }
+                
+                if (!data.suggestion) {
+                    throw new Error('No suggestion in response. Data: ' + JSON.stringify(data));
+                }
+                
+                console.log('Displaying suggestion...');
+                currentSuggestion = data;
+                displaySuggestion(data);
+                
+            } catch (error) {
+                console.error('Error loading suggestion:', error);
+                displayError(error.message || 'Failed to load suggestion');
+            }
+        }
+        
+        function displaySuggestion(data) {
+            // Validate data has suggestion
+            if (!data || !data.suggestion) {
+                displayError('No suggestion available. The AI may not have generated a response yet.');
+                return;
+            }
+            
+            const qualityScore = data.quality_score || data.confidence || 0;
+            const confidenceBadge = qualityScore >= 70 ? 'badge-high' : qualityScore >= 50 ? 'badge-medium' : 'badge-low';
+            const confidenceText = qualityScore >= 70 ? 'High' : qualityScore >= 50 ? 'Medium' : 'Low';
+            
+            const warnings = data.warnings || [];
+            const warningHtml = warnings.length > 0 ? `
+                <div class="warning">
+                    <div class="warning-title">⚠️ Review Needed:</div>
+                    ${warnings.map(w => `<div>• ${w}</div>`).join('')}
+                </div>
+            ` : '';
+            
+            document.getElementById('content').innerHTML = `
+                <div class="suggestion-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span class="brand-tag">${data.brand || 'Freebird Icons'}</span>
+                        <span class="badge ${confidenceBadge}">${confidenceText} Quality (${qualityScore}%)</span>
+                    </div>
+                    
+                    ${warningHtml}
+                    
+                    <div class="suggestion-text">${escapeHtml(data.suggestion)}</div>
+                    
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="useSuggestion()">
+                            ✓ Use Response
+                        </button>
+                        <button class="btn btn-secondary" onclick="copySuggestion()">
+                            📋 Copy
+                        </button>
+                    </div>
+                    
+                    <div class="info">
+                        <div class="info-item">
+                            <span>🎯</span>
+                            <span>Ticket #${TICKET_ID}</span>
+                        </div>
+                        ${data.cached ? '<div class="info-item"><span>💾</span><span>Cached</span></div>' : ''}
+                    </div>
+                </div>
+                
+                <div class="feedback">
+                    <div class="feedback-label">Was this helpful?</div>
+                    <div class="feedback-btns">
+                        <button class="feedback-btn" onclick="sendFeedback('used')">👍 Used It</button>
+                        <button class="feedback-btn" onclick="sendFeedback('edited')">✏️ Edited</button>
+                        <button class="feedback-btn" onclick="sendFeedback('ignored')">👎 Ignored</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function displayError(message) {
+            document.getElementById('content').innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${escapeHtml(message)}
+                    <br><br>
+                    <button class="btn btn-secondary" onclick="loadSuggestion()">Try Again</button>
+                </div>
+            `;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        async function useSuggestion() {
+            if (!currentSuggestion) return;
+            
+            // Copy to clipboard
+            await navigator.clipboard.writeText(currentSuggestion.suggestion);
+            
+            // Visual feedback
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✓ Copied!';
+            btn.style.background = '#4caf50';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.style.background = '';
+            }, 2000);
+            
+            // Record feedback
+            sendFeedback('used');
+            
+            alert('Response copied to clipboard! Paste it into your reply field.');
+        }
+        
+        async function copySuggestion() {
+            if (!currentSuggestion) return;
+            
+            await navigator.clipboard.writeText(currentSuggestion.suggestion);
+            
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✓ Copied';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
+        }
+        
+        async function sendFeedback(type) {
+            try {
+                await fetch(`${API_URL}/api/feedback`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        ticket_id: TICKET_ID,
+                        feedback: type
+                    })
+                });
+                
+                // Visual feedback
+                document.querySelectorAll('.feedback-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                event.target.classList.add('active');
+                
+            } catch (error) {
+                console.error('Error sending feedback:', error);
+            }
+        }
+        
+        // Auto-load on page load
+        window.addEventListener('load', loadSuggestion);
+    </script>
+</body>
+</html>
+    """
+    
+    return render_template_string(widget_html, ticket_id=ticket_id)
+
+# ============================================================================
+# STARTUP LOGGING (runs when gunicorn imports the module)
+# ============================================================================
+
+logger.info("="*60)
+logger.info("🚀 Gorgias AI Widget Server Starting v2.0")
+logger.info("="*60)
+logger.info(f"OpenAI API Key: {'✓ Set' if OPENAI_API_KEY else '✗ Not Set'}")
+logger.info(f"Gorgias Auth: {'✓ Set' if GORGIAS_AUTH else '✗ Not Set'}")
+logger.info(f"Gorgias URL: {GORGIAS_BASE_URL}")
+logger.info(f"POST support on /widget: ✓ Enabled")
+logger.info("="*60)
+
+# ============================================================================
+# RUN SERVER (only for local development)
+# ============================================================================
+
+if __name__ == '__main__':
+    # This only runs when executing directly (not via gunicorn)
+    port = int(os.getenv('PORT', 5000))
+    logger.info(f"Running in development mode on port {port}")
+    app.run(
+        host='0.0.0.0',
+        port=port,
+        debug=True
+    )
+
