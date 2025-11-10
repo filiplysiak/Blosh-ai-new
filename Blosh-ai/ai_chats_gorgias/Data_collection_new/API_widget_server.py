@@ -21,9 +21,10 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 GORGIAS_AUTH = os.getenv('GORGIAS_AUTH')
 GORGIAS_BASE_URL = os.getenv('GORGIAS_BASE_URL', 'https://freebirdicons.gorgias.com/api')
 
-# Validate required environment variables
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable is required")
+# Validate required environment variables (only in production)
+# Allow startup without key for Railway build process
+if not OPENAI_API_KEY and os.getenv('RAILWAY_ENVIRONMENT'):
+    logger.warning("⚠️ OPENAI_API_KEY not set - API calls will fail")
 
 # Set OpenAI key for response generator
 os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
