@@ -168,7 +168,27 @@ def suggest_response():
     }
     """
     try:
-        data = request.get_json()
+        raw_data = request.get_json()
+        
+        # Log the raw data for debugging
+        logger.info(f"Received raw data type: {type(raw_data)}")
+        logger.info(f"Received raw data: {raw_data}")
+        
+        # Handle both list and dict formats from Gorgias
+        if isinstance(raw_data, list):
+            # Gorgias might send a list with one dict element
+            if len(raw_data) > 0 and isinstance(raw_data[0], dict):
+                data = raw_data[0]
+                logger.info("Extracted data from list format")
+            else:
+                logger.error(f"Unexpected list format: {raw_data}")
+                return jsonify({'error': 'Invalid data format: expected dict or list with dict'}), 400
+        elif isinstance(raw_data, dict):
+            data = raw_data
+        else:
+            logger.error(f"Unexpected data type: {type(raw_data)}")
+            return jsonify({'error': f'Invalid data type: {type(raw_data)}'}), 400
+        
         ticket_id = data.get('ticket_id')
         
         if not ticket_id:
@@ -242,7 +262,19 @@ def suggest_response():
 def record_feedback():
     """Record agent feedback on suggestions"""
     try:
-        data = request.get_json()
+        raw_data = request.get_json()
+        
+        # Handle both list and dict formats
+        if isinstance(raw_data, list):
+            if len(raw_data) > 0 and isinstance(raw_data[0], dict):
+                data = raw_data[0]
+            else:
+                return jsonify({'error': 'Invalid data format'}), 400
+        elif isinstance(raw_data, dict):
+            data = raw_data
+        else:
+            return jsonify({'error': f'Invalid data type: {type(raw_data)}'}), 400
+        
         ticket_id = data.get('ticket_id')
         feedback = data.get('feedback')  # 'used', 'edited', 'ignored'
         
