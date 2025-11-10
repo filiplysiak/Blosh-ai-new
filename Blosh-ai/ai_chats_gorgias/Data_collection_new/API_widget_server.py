@@ -83,7 +83,10 @@ def get_ticket_messages(ticket_id):
 def extract_ticket_info(ticket_data):
     """Extract relevant info from Gorgias ticket data"""
     if not ticket_data:
+        logger.error("extract_ticket_info: ticket_data is None")
         return None
+    
+    logger.info(f"Extracting info from ticket {ticket_data.get('id')}")
     
     # Get customer info
     customer = ticket_data.get('customer', {})
@@ -93,15 +96,26 @@ def extract_ticket_info(ticket_data):
     last_customer_message = ''
     messages = ticket_data.get('messages', [])
     
+    logger.info(f"Ticket has {len(messages)} messages")
+    
     if messages:
+        # Try to find last customer message
         for msg in reversed(messages):
-            if msg.get('source', {}).get('type') == 'customer':
-                last_customer_message = msg.get('body_text', '')
+            from_agent = msg.get('from_agent', True)
+            body_text = msg.get('body_text', '')
+            
+            logger.info(f"Message from_agent={from_agent}, has_text={bool(body_text)}")
+            
+            # Get message from customer (from_agent=False)
+            if not from_agent and body_text:
+                last_customer_message = body_text
+                logger.info(f"Found customer message: {body_text[:100]}...")
                 break
     
     # Fallback: try to get from ticket's last_message
     if not last_customer_message and 'last_message' in ticket_data:
         last_customer_message = ticket_data.get('last_message', {}).get('body_text', '')
+        logger.info(f"Using last_message fallback: {last_customer_message[:100] if last_customer_message else 'empty'}...")
     
     # Try to extract order number from tags or subject
     tags = ticket_data.get('tags', [])
