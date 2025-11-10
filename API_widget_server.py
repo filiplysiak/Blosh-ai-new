@@ -433,6 +433,10 @@ def widget(ticket_id):
                         
                         # Use provided message or fetch from Gorgias
                         msg = message
+                        name = customer_name
+                        order = order_number
+                        subj = subject
+                        
                         if not msg:
                             logger.info(f"Background: Fetching ticket data from Gorgias")
                             ticket_data = get_ticket_data(ticket_id)
@@ -440,8 +444,8 @@ def widget(ticket_id):
                                 info = extract_ticket_info(ticket_data)
                                 if info:
                                     msg = info['message']
-                                    customer_name = info.get('customer_name', customer_name)
-                                    order_number = info.get('order_number', order_number)
+                                    name = info.get('customer_name', name)
+                                    order = info.get('order_number', order)
                         
                         if not msg:
                             logger.error(f"Background: No message found for ticket {ticket_id}")
@@ -451,9 +455,9 @@ def widget(ticket_id):
                         
                         result = generate_response(
                             customer_message=msg,
-                            customer_name=customer_name,
-                            order_number=order_number,
-                            subject=subject
+                            customer_name=name,
+                            order_number=order,
+                            subject=subj
                         )
                         
                         if result:
