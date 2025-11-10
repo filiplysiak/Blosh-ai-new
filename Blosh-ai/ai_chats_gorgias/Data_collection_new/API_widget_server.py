@@ -160,7 +160,12 @@ def root():
 @app.route('/health', methods=['GET'])
 def health():
     """Health check"""
-    return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'cache_size': len(suggestions_cache),
+        'cached_tickets': list(suggestions_cache.keys())
+    })
 
 @app.route('/api/suggest', methods=['POST'])
 def suggest_response():
