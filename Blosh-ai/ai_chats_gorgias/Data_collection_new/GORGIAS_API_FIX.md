@@ -13,33 +13,60 @@ ticket_id = data.get('ticket_id')
 ```
 
 ## Root Cause
-Gorgias can send webhook/API data in two formats:
-1. **Dictionary format**: `{"ticket_id": "123", "message": "..."}`
-2. **List format**: `[{"ticket_id": "123", "message": "..."}]`
+Gorgias HTTP integration sends data as a **form array** format:
+```json
+[
+  {"key": "ticket_id", "value": "123456"},
+  {"key": "customer_name", "value": "Petra"},
+  {"key": "message", "value": "Ik wil retour doen"},
+  {"key": "subject", "value": "Retour"}
+]
+```
 
-The code was only handling the dictionary format.
+But the code expected a simple dictionary:
+```json
+{
+  "ticket_id": "123456",
+  "customer_name": "Petra",
+  "message": "...",
+  "subject": "..."
+}
+```
+
+This is because Gorgias HTTP integrations use a "form" field with key-value pairs that get sent as an array.
 
 ## Solution
-Updated both `/api/suggest` and `/api/feedback` endpoints to handle both formats:
+Updated both `/api/suggest` and `/api/feedback` endpoints to handle Gorgias form array format:
 
 ```python
 raw_data = request.get_json()
 
-# Handle both list and dict formats from Gorgias
+# Handle Gorgias form array format: [{"key": "ticket_id", "value": "123"}, ...]
 if isinstance(raw_data, list):
-    # Gorgias might send a list with one dict element
     if len(raw_data) > 0 and isinstance(raw_data[0], dict):
-        data = raw_data[0]
-        logger.info("Extracted data from list format")
+        if 'key' in raw_data[0] and 'value' in raw_data[0]:
+            # Convert Gorgias form array to dict
+            data = {item['key']: item['value'] for item in raw_data}
+            logger.info(f"Converted Gorgias form array to dict: {data}")
+        else:
+            # Simple list with one dict element
+            data = raw_data[0]
+            logger.info("Extracted data from list format")
     else:
         logger.error(f"Unexpected list format: {raw_data}")
-        return jsonify({'error': 'Invalid data format: expected dict or list with dict'}), 400
+        return jsonify({'error': 'Invalid data format'}), 400
 elif isinstance(raw_data, dict):
     data = raw_data
+    logger.info("Using dict format directly")
 else:
     logger.error(f"Unexpected data type: {type(raw_data)}")
     return jsonify({'error': f'Invalid data type: {type(raw_data)}'}), 400
 ```
+
+The key insight: Gorgias HTTP integrations with "form" fields send data as:
+`[{"key": "field_name", "value": "field_value"}, ...]`
+
+We now convert this to a standard dictionary for processing.
 
 ## Changes Made
 1. ✅ Updated `/api/suggest` endpoint to handle list format
@@ -49,8 +76,9 @@ else:
 
 ## Testing
 After deploying to Railway, the API should now:
-- ✅ Accept data as `{"ticket_id": "123"}`
-- ✅ Accept data as `[{"ticket_id": "123"}]`
+- ✅ Accept Gorgias form array: `[{"key": "ticket_id", "value": "123"}, ...]`
+- ✅ Accept simple dict: `{"ticket_id": "123"}`
+- ✅ Accept simple list: `[{"ticket_id": "123"}]`
 - ✅ Log the received format for debugging
 - ✅ Return clear error messages for invalid formats
 

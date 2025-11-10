@@ -174,17 +174,24 @@ def suggest_response():
         logger.info(f"Received raw data type: {type(raw_data)}")
         logger.info(f"Received raw data: {raw_data}")
         
-        # Handle both list and dict formats from Gorgias
+        # Handle Gorgias form array format: [{"key": "ticket_id", "value": "123"}, ...]
         if isinstance(raw_data, list):
-            # Gorgias might send a list with one dict element
+            # Check if it's Gorgias form format (array of key-value objects)
             if len(raw_data) > 0 and isinstance(raw_data[0], dict):
-                data = raw_data[0]
-                logger.info("Extracted data from list format")
+                if 'key' in raw_data[0] and 'value' in raw_data[0]:
+                    # Convert Gorgias form array to dict
+                    data = {item['key']: item['value'] for item in raw_data}
+                    logger.info(f"Converted Gorgias form array to dict: {data}")
+                else:
+                    # Simple list with one dict element
+                    data = raw_data[0]
+                    logger.info("Extracted data from list format")
             else:
                 logger.error(f"Unexpected list format: {raw_data}")
                 return jsonify({'error': 'Invalid data format: expected dict or list with dict'}), 400
         elif isinstance(raw_data, dict):
             data = raw_data
+            logger.info("Using dict format directly")
         else:
             logger.error(f"Unexpected data type: {type(raw_data)}")
             return jsonify({'error': f'Invalid data type: {type(raw_data)}'}), 400
@@ -264,10 +271,14 @@ def record_feedback():
     try:
         raw_data = request.get_json()
         
-        # Handle both list and dict formats
+        # Handle Gorgias form array format
         if isinstance(raw_data, list):
             if len(raw_data) > 0 and isinstance(raw_data[0], dict):
-                data = raw_data[0]
+                if 'key' in raw_data[0] and 'value' in raw_data[0]:
+                    # Convert Gorgias form array to dict
+                    data = {item['key']: item['value'] for item in raw_data}
+                else:
+                    data = raw_data[0]
             else:
                 return jsonify({'error': 'Invalid data format'}), 400
         elif isinstance(raw_data, dict):
