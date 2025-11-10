@@ -566,10 +566,14 @@ def widget(ticket_id):
         
         async function loadSuggestion() {
             try {
+                console.log(`Loading suggestion for ticket ${TICKET_ID}...`);
+                
                 // Try to get cached suggestion first
                 let response = await fetch(`${API_URL}/api/suggest/${TICKET_ID}`, {
                     method: 'GET'
                 });
+                
+                console.log(`Initial check response: ${response.status}`);
                 
                 if (response.status === 404) {
                     // Not cached yet, trigger generation
@@ -632,6 +636,7 @@ def widget(ticket_id):
                 }
                 
                 const data = await response.json();
+                console.log('Received data:', data);
                 
                 if (data.error) {
                     throw new Error(data.error);
@@ -641,6 +646,11 @@ def widget(ticket_id):
                     throw new Error('Suggestion not ready yet. Please refresh the page in a few seconds.');
                 }
                 
+                if (!data.suggestion) {
+                    throw new Error('No suggestion in response. Data: ' + JSON.stringify(data));
+                }
+                
+                console.log('Displaying suggestion...');
                 currentSuggestion = data;
                 displaySuggestion(data);
                 
@@ -651,6 +661,12 @@ def widget(ticket_id):
         }
         
         function displaySuggestion(data) {
+            // Validate data has suggestion
+            if (!data || !data.suggestion) {
+                displayError('No suggestion available. The AI may not have generated a response yet.');
+                return;
+            }
+            
             const qualityScore = data.quality_score || data.confidence || 0;
             const confidenceBadge = qualityScore >= 70 ? 'badge-high' : qualityScore >= 50 ? 'badge-medium' : 'badge-low';
             const confidenceText = qualityScore >= 70 ? 'High' : qualityScore >= 50 ? 'Medium' : 'Low';
