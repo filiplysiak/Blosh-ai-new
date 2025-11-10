@@ -810,32 +810,28 @@ def widget(ticket_id):
     return render_template_string(widget_html, ticket_id=ticket_id)
 
 # ============================================================================
-# RUN SERVER
+# STARTUP LOGGING (runs when gunicorn imports the module)
+# ============================================================================
+
+logger.info("="*60)
+logger.info("🚀 Gorgias AI Widget Server Starting")
+logger.info("="*60)
+logger.info(f"OpenAI API Key: {'✓ Set' if OPENAI_API_KEY else '✗ Not Set'}")
+logger.info(f"Gorgias Auth: {'✓ Set' if GORGIAS_AUTH else '✗ Not Set'}")
+logger.info(f"Gorgias URL: {GORGIAS_BASE_URL}")
+logger.info("="*60)
+
+# ============================================================================
+# RUN SERVER (only for local development)
 # ============================================================================
 
 if __name__ == '__main__':
-    logger.info("="*60)
-    logger.info("🚀 Gorgias AI Widget Server")
-    logger.info("="*60)
-    logger.info(f"OpenAI API Key: {'✓ Set' if OPENAI_API_KEY else '✗ Not Set'}")
-    logger.info(f"Gorgias Auth: {'✓ Set' if GORGIAS_AUTH else '✗ Not Set'}")
-    logger.info(f"Gorgias URL: {GORGIAS_BASE_URL}")
-    logger.info("="*60)
-    logger.info("")
-    logger.info("Endpoints:")
-    logger.info("  GET  /health                  - Health check")
-    logger.info("  POST /api/suggest             - Generate AI suggestion")
-    logger.info("  GET  /api/suggest/<id>        - Get cached suggestion")
-    logger.info("  POST /api/feedback            - Record feedback")
-    logger.info("  GET  /widget/<ticket_id>      - Widget interface")
-    logger.info("")
-    logger.info("="*60)
-    
-    # Run server
+    # This only runs when executing directly (not via gunicorn)
     port = int(os.getenv('PORT', 5000))
+    logger.info(f"Running in development mode on port {port}")
     app.run(
         host='0.0.0.0',
         port=port,
-        debug=os.getenv('FLASK_ENV') == 'development'
+        debug=True
     )
 
