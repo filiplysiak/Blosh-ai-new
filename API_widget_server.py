@@ -946,11 +946,12 @@ def widget(ticket_id):
 # ============================================================================
 
 logger.info("="*60)
-logger.info("🚀 Gorgias AI Widget Server Starting")
+logger.info("🚀 Gorgias AI Widget Server Starting v2.0")
 logger.info("="*60)
 logger.info(f"OpenAI API Key: {'✓ Set' if OPENAI_API_KEY else '✗ Not Set'}")
 logger.info(f"Gorgias Auth: {'✓ Set' if GORGIAS_AUTH else '✗ Not Set'}")
 logger.info(f"Gorgias URL: {GORGIAS_BASE_URL}")
+logger.info(f"POST support on /widget: ✓ Enabled")
 logger.info("="*60)
 
 # ============================================================================
