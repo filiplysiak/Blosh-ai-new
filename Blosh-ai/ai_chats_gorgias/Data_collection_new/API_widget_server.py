@@ -279,13 +279,14 @@ def suggest_response():
         thread.daemon = True
         thread.start()
         
-        # Respond immediately to Gorgias
+        # Respond immediately to Gorgias (webhook expects quick response)
+        logger.info(f"Responded 202 to Gorgias for ticket {ticket_id}, processing in background")
         return jsonify({
-            'status': 'processing',
+            'status': 'accepted',
             'ticket_id': ticket_id,
-            'message': 'AI suggestion is being generated. Check back in a few seconds.',
+            'message': 'Processing started',
             'timestamp': datetime.now().isoformat()
-        }), 202
+        }), 200  # Changed to 200 so Gorgias sees it as success
         
     except Exception as e:
         logger.error(f"Error in suggest_response: {str(e)}", exc_info=True)
@@ -565,26 +566,79 @@ def widget(ticket_id):
         
         async function loadSuggestion() {
             try {
-                // First, try to fetch from cache or generate new suggestion
-                const response = await fetch(`${API_URL}/api/suggest`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        ticket_id: TICKET_ID
-                    })
+                // Try to get cached suggestion first
+                let response = await fetch(`${API_URL}/api/suggest/${TICKET_ID}`, {
+                    method: 'GET'
                 });
                 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+                if (response.status === 404) {
+                    // Not cached yet, trigger generation
+                    console.log('Suggestion not cached, triggering generation...');
+                    
+                    await fetch(`${API_URL}/api/suggest`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            ticket_id: TICKET_ID
+                        })
+                    });
+                    
+                    // Poll for result (check every 2 seconds, max 10 attempts = 20 seconds)
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    
+                    // Update UI to show we're waiting
+                    document.getElementById('content').innerHTML = `
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Generating AI suggestion...</div>
+                            <div style="font-size: 12px; color: #6c757d; margin-top: 8px;">
+                                This takes 5-10 seconds
+                            </div>
+                        </div>
+                    `;
+                    
+                    while (attempts < maxAttempts) {
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+                        attempts++;
+                        
+                        console.log(`Polling attempt ${attempts}/${maxAttempts}...`);
+                        
+                        // Update progress
+                        document.getElementById('content').innerHTML = `
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <div>Generating AI suggestion...</div>
+                                <div style="font-size: 12px; color: #6c757d; margin-top: 8px;">
+                                    Checking... (${attempts * 2}s / ${maxAttempts * 2}s)
+                                </div>
+                            </div>
+                        `;
+                        
+                        response = await fetch(`${API_URL}/api/suggest/${TICKET_ID}`, {
+                            method: 'GET'
+                        });
+                        
+                        if (response.ok) {
+                            break; // Got the suggestion!
+                        }
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error('Suggestion generation timed out. Please refresh the page.');
+                    }
                 }
                 
                 const data = await response.json();
                 
                 if (data.error) {
                     throw new Error(data.error);
+                }
+                
+                if (data.status === 'not_ready') {
+                    throw new Error('Suggestion not ready yet. Please refresh the page in a few seconds.');
                 }
                 
                 currentSuggestion = data;
