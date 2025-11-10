@@ -14,7 +14,13 @@ import requests
 
 # Initialize Flask
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/*": {
+        "origins": ["https://*.gorgias.com", "https://freebirdicons.gorgias.com"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Configuration
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
@@ -305,10 +311,13 @@ def get_suggestion(ticket_id):
     Returns 404 if not ready yet
     """
     try:
+        logger.info(f"GET request for suggestion {ticket_id}, cache has {len(suggestions_cache)} items")
+        
         if ticket_id in suggestions_cache:
-            logger.info(f"Returning cached suggestion for {ticket_id}")
+            logger.info(f"✅ Returning cached suggestion for {ticket_id}")
             return jsonify(suggestions_cache[ticket_id])
         else:
+            logger.info(f"❌ Suggestion {ticket_id} not in cache yet")
             return jsonify({
                 'status': 'not_ready',
                 'ticket_id': ticket_id,
@@ -362,6 +371,7 @@ def widget(ticket_id):
     Gorgias sidebar widget - displays AI suggestion in an iframe
     This endpoint returns full HTML that Gorgias will render in the sidebar
     """
+    logger.info(f"Widget requested for ticket {ticket_id}")
     
     widget_html = """
 <!DOCTYPE html>
