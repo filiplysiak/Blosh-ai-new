@@ -21,13 +21,9 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 GORGIAS_AUTH = os.getenv('GORGIAS_AUTH')
 GORGIAS_BASE_URL = os.getenv('GORGIAS_BASE_URL', 'https://freebirdicons.gorgias.com/api')
 
-# Validate required environment variables (only in production)
-# Allow startup without key for Railway build process
-if not OPENAI_API_KEY and os.getenv('RAILWAY_ENVIRONMENT'):
-    logger.warning("⚠️ OPENAI_API_KEY not set - API calls will fail")
-
-# Set OpenAI key for response generator
-os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
+# Set OpenAI key for response generator (only if set)
+if OPENAI_API_KEY:
+    os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -231,11 +227,17 @@ def suggest_response():
         def process_in_background():
             """Process AI generation in background"""
             try:
-                logger.info(f"Background: Generating suggestion for ticket {ticket_id}")
+                logger.info(f"Background: Starting generation for ticket {ticket_id}")
+                
+                # Validate we have OpenAI key
+                if not OPENAI_API_KEY:
+                    logger.error(f"Background: OPENAI_API_KEY not set, cannot generate")
+                    return
                 
                 # If message is empty, try to fetch from Gorgias
                 msg = message
                 if not msg:
+                    logger.info(f"Background: Message empty, fetching from Gorgias API")
                     ticket_data = get_ticket_data(ticket_id)
                     if ticket_data:
                         info = extract_ticket_info(ticket_data)
@@ -245,6 +247,8 @@ def suggest_response():
                 if not msg:
                     logger.error(f"Background: No message found for ticket {ticket_id}")
                     return
+                
+                logger.info(f"Background: Calling AI model for ticket {ticket_id}")
                 
                 # Generate AI response
                 result = generate_response(
@@ -268,12 +272,13 @@ def suggest_response():
                         'cached': False
                     }
                     suggestions_cache[ticket_id] = response_data
-                    logger.info(f"Background: Generated and cached suggestion for {ticket_id} - Quality: {result['quality_score']}")
+                    logger.info(f"Background: ✅ Generated and cached suggestion for {ticket_id} - Quality: {result['quality_score']}")
                 else:
-                    logger.error(f"Background: Failed to generate response for {ticket_id}")
+                    logger.error(f"Background: ❌ Failed to generate response for {ticket_id}")
                     
             except Exception as e:
-                logger.error(f"Background: Error processing ticket {ticket_id}: {str(e)}", exc_info=True)
+                logger.error(f"Background: ❌ Exception processing ticket {ticket_id}: {str(e)}", exc_info=True)
+                # Don't re-raise - we don't want background thread to crash the server
         
         # Start background processing
         thread = threading.Thread(target=process_in_background)
@@ -809,35 +814,28 @@ def widget(ticket_id):
 # ============================================================================
 
 if __name__ == '__main__':
-    try:
-        logger.info("="*60)
-        logger.info("🚀 Gorgias AI Widget Server")
-        logger.info("="*60)
-        logger.info(f"OpenAI API Key: {'✓ Set' if OPENAI_API_KEY else '✗ Not Set'}")
-        logger.info(f"Gorgias Auth: {'✓ Set' if GORGIAS_AUTH else '✗ Not Set'}")
-        logger.info(f"Gorgias URL: {GORGIAS_BASE_URL}")
-        logger.info("="*60)
-        logger.info("")
-        logger.info("Endpoints:")
-        logger.info("  GET  /health                  - Health check")
-        logger.info("  POST /api/suggest             - Generate AI suggestion")
-        logger.info("  POST /api/feedback            - Record feedback")
-        logger.info("  GET  /widget/<ticket_id>      - Widget interface")
-        logger.info("")
-        logger.info("="*60)
-        
-        # Run server
-        port = int(os.getenv('PORT', 5000))
-        app.run(
-            host='0.0.0.0',
-            port=port,
-            debug=os.getenv('FLASK_ENV') == 'development'
-        )
-    except ValueError as e:
-        logger.error(f"❌ Configuration Error: {str(e)}")
-        logger.error("Please set the required environment variables in Railway:")
-        logger.error("  - OPENAI_API_KEY (required)")
-        logger.error("  - GORGIAS_AUTH (optional, for fetching ticket data)")
-        logger.error("  - GORGIAS_BASE_URL (optional, defaults to freebirdicons)")
-        raise
+    logger.info("="*60)
+    logger.info("🚀 Gorgias AI Widget Server")
+    logger.info("="*60)
+    logger.info(f"OpenAI API Key: {'✓ Set' if OPENAI_API_KEY else '✗ Not Set'}")
+    logger.info(f"Gorgias Auth: {'✓ Set' if GORGIAS_AUTH else '✗ Not Set'}")
+    logger.info(f"Gorgias URL: {GORGIAS_BASE_URL}")
+    logger.info("="*60)
+    logger.info("")
+    logger.info("Endpoints:")
+    logger.info("  GET  /health                  - Health check")
+    logger.info("  POST /api/suggest             - Generate AI suggestion")
+    logger.info("  GET  /api/suggest/<id>        - Get cached suggestion")
+    logger.info("  POST /api/feedback            - Record feedback")
+    logger.info("  GET  /widget/<ticket_id>      - Widget interface")
+    logger.info("")
+    logger.info("="*60)
+    
+    # Run server
+    port = int(os.getenv('PORT', 5000))
+    app.run(
+        host='0.0.0.0',
+        port=port,
+        debug=os.getenv('FLASK_ENV') == 'development'
+    )
 
