@@ -143,13 +143,15 @@ def root():
     return jsonify({
         'status': 'healthy',
         'service': 'Gorgias AI Widget API',
-        'version': '1.0',
+        'version': '2.0',
         'endpoints': {
             'health': '/health',
-            'suggest': '/api/suggest',
+            'suggest_post': 'POST /api/suggest - Generate suggestion (async)',
+            'suggest_get': 'GET /api/suggest/<ticket_id> - Get cached suggestion',
             'widget': '/widget/<ticket_id>',
             'feedback': '/api/feedback'
-        }
+        },
+        'note': 'POST /api/suggest returns 202 immediately. Use GET to retrieve result.'
     })
 
 @app.route('/health', methods=['GET'])
@@ -162,21 +164,22 @@ def suggest_response():
     """
     Generate AI suggestion for a ticket
     
-    Expects JSON:
-    {
-        "ticket_id": "123456",
-        "customer_name": "Petra",
-        "message": "Ik wil retour doen",
-        "order_number": "102345678",
-        "subject": "Retour"
-    }
+    Gorgias has a 5-second timeout, so we respond immediately with 202 Accepted
+    and process in background. The suggestion is cached for widget access.
+    
+    Expects JSON (Gorgias format):
+    [
+        {"key": "ticket_id", "value": "123456"},
+        {"key": "customer_name", "value": "Petra"},
+        {"key": "message", "value": "Ik wil retour doen"},
+        {"key": "subject", "value": "Retour"}
+    ]
     """
     try:
         raw_data = request.get_json()
         
         # Log the raw data for debugging
         logger.info(f"Received raw data type: {type(raw_data)}")
-        logger.info(f"Received raw data: {raw_data}")
         
         # Handle Gorgias form array format: [{"key": "ticket_id", "value": "123"}, ...]
         if isinstance(raw_data, list):
@@ -185,7 +188,7 @@ def suggest_response():
                 if 'key' in raw_data[0] and 'value' in raw_data[0]:
                     # Convert Gorgias form array to dict
                     data = {item['key']: item['value'] for item in raw_data}
-                    logger.info(f"Converted Gorgias form array to dict: {data}")
+                    logger.info(f"Converted Gorgias form array to dict")
                 else:
                     # Simple list with one dict element
                     data = raw_data[0]
@@ -205,7 +208,7 @@ def suggest_response():
         if not ticket_id:
             return jsonify({'error': 'ticket_id required'}), 400
         
-        logger.info(f"Generating suggestion for ticket {ticket_id}")
+        logger.info(f"Request for ticket {ticket_id} - responding immediately to avoid timeout")
         
         # Check cache first
         if ticket_id in suggestions_cache:
@@ -220,53 +223,92 @@ def suggest_response():
         order_number = data.get('order_number', '')
         subject = data.get('subject', '')
         
-        # If message is empty, try to fetch from Gorgias
-        if not message:
-            ticket_data = get_ticket_data(ticket_id)
-            if ticket_data:
-                info = extract_ticket_info(ticket_data)
-                if info:
-                    customer_name = info['customer_name']
-                    message = info['message']
-                    order_number = info['order_number'] or order_number
-                    subject = info['subject']
+        # Respond immediately to Gorgias (avoid 5-second timeout)
+        # We'll process in background and cache the result
+        import threading
         
-        if not message:
-            return jsonify({'error': 'No message found'}), 400
+        def process_in_background():
+            """Process AI generation in background"""
+            try:
+                logger.info(f"Background: Generating suggestion for ticket {ticket_id}")
+                
+                # If message is empty, try to fetch from Gorgias
+                msg = message
+                if not msg:
+                    ticket_data = get_ticket_data(ticket_id)
+                    if ticket_data:
+                        info = extract_ticket_info(ticket_data)
+                        if info:
+                            msg = info['message']
+                
+                if not msg:
+                    logger.error(f"Background: No message found for ticket {ticket_id}")
+                    return
+                
+                # Generate AI response
+                result = generate_response(
+                    customer_message=msg,
+                    customer_name=customer_name,
+                    order_number=order_number,
+                    subject=subject
+                )
+                
+                if result:
+                    # Cache the result
+                    response_data = {
+                        'ticket_id': ticket_id,
+                        'suggestion': result['response'],
+                        'quality_score': result['quality_score'],
+                        'confidence': result['quality_score'],
+                        'brand': result['brand'],
+                        'warnings': result.get('warnings', []),
+                        'approved': result['approved'],
+                        'timestamp': datetime.now().isoformat(),
+                        'cached': False
+                    }
+                    suggestions_cache[ticket_id] = response_data
+                    logger.info(f"Background: Generated and cached suggestion for {ticket_id} - Quality: {result['quality_score']}")
+                else:
+                    logger.error(f"Background: Failed to generate response for {ticket_id}")
+                    
+            except Exception as e:
+                logger.error(f"Background: Error processing ticket {ticket_id}: {str(e)}", exc_info=True)
         
-        # Generate AI response
-        result = generate_response(
-            customer_message=message,
-            customer_name=customer_name,
-            order_number=order_number,
-            subject=subject
-        )
+        # Start background processing
+        thread = threading.Thread(target=process_in_background)
+        thread.daemon = True
+        thread.start()
         
-        if not result:
-            return jsonify({'error': 'Failed to generate response'}), 500
-        
-        # Prepare response
-        response_data = {
+        # Respond immediately to Gorgias
+        return jsonify({
+            'status': 'processing',
             'ticket_id': ticket_id,
-            'suggestion': result['response'],
-            'quality_score': result['quality_score'],
-            'confidence': result['quality_score'],
-            'brand': result['brand'],
-            'warnings': result.get('warnings', []),
-            'approved': result['approved'],
-            'timestamp': datetime.now().isoformat(),
-            'cached': False
-        }
-        
-        # Cache it
-        suggestions_cache[ticket_id] = response_data
-        
-        logger.info(f"Generated suggestion for {ticket_id} - Quality: {result['quality_score']}")
-        
-        return jsonify(response_data)
+            'message': 'AI suggestion is being generated. Check back in a few seconds.',
+            'timestamp': datetime.now().isoformat()
+        }), 202
         
     except Exception as e:
         logger.error(f"Error in suggest_response: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/suggest/<ticket_id>', methods=['GET'])
+def get_suggestion(ticket_id):
+    """
+    Get cached suggestion for a ticket
+    Returns 404 if not ready yet
+    """
+    try:
+        if ticket_id in suggestions_cache:
+            logger.info(f"Returning cached suggestion for {ticket_id}")
+            return jsonify(suggestions_cache[ticket_id])
+        else:
+            return jsonify({
+                'status': 'not_ready',
+                'ticket_id': ticket_id,
+                'message': 'Suggestion not ready yet. Please wait a few seconds.'
+            }), 404
+    except Exception as e:
+        logger.error(f"Error getting suggestion: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/feedback', methods=['POST'])
