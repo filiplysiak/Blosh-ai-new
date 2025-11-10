@@ -1,3 +1,0 @@
-# Brand Analyzer Module
-
-
