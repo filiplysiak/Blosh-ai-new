@@ -356,6 +356,76 @@ def list_suggestions() -> Any:
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/ticket/<ticket_id>", methods=["GET"])
+def get_ticket_info(ticket_id: str) -> Any:
+    """Get detailed ticket information for debugging"""
+    try:
+        # Check if ticket exists in database
+        ticket = db.get_ticket(ticket_id)
+        suggestion = db.get_suggestion(ticket_id)
+        
+        # Check queue status
+        with db._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT status, priority, queued_at, started_at, completed_at, error
+                FROM generation_queue
+                WHERE ticket_id = ?
+            """, (ticket_id,))
+            queue_row = cursor.fetchone()
+            queue_status = dict(queue_row) if queue_row else None
+        
+        return jsonify({
+            "ticket_id": ticket_id,
+            "in_database": ticket is not None,
+            "has_suggestion": suggestion is not None,
+            "ticket_data": ticket,
+            "suggestion_data": {
+                "quality_score": suggestion.get("quality_score") if suggestion else None,
+                "brand": suggestion.get("brand") if suggestion else None,
+                "generated_at": suggestion.get("generated_at") if suggestion else None,
+            } if suggestion else None,
+            "queue_status": queue_status,
+            "actions": {
+                "sync_ticket": f"POST /api/sync-ticket/{ticket_id}",
+                "generate_suggestion": f"POST /api/suggest with ticket_id={ticket_id}"
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting ticket info: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/sync-ticket/<ticket_id>", methods=["POST"])
+def sync_single_ticket(ticket_id: str) -> Any:
+    """Sync a specific ticket from Gorgias and generate suggestion"""
+    try:
+        logger.info(f"Manual sync requested for ticket {ticket_id}")
+        
+        # Sync the ticket
+        success = sync.sync_ticket(ticket_id)
+        
+        if not success:
+            return jsonify({
+                "status": "error",
+                "message": f"Failed to sync ticket {ticket_id} from Gorgias"
+            }), 500
+        
+        # Queue for suggestion generation
+        manager.generate_suggestion_async(ticket_id, priority=100)  # High priority
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Ticket {ticket_id} synced and queued for generation",
+            "ticket_id": ticket_id,
+            "check_status": f"/api/ticket/{ticket_id}"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error syncing ticket {ticket_id}: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @app.route("/api/cleanup-test-data", methods=["POST"])
 def cleanup_test_data_endpoint() -> Any:
     """Remove test data from database"""
