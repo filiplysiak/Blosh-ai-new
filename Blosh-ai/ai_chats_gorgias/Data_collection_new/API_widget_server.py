@@ -484,6 +484,82 @@ def record_feedback() -> Any:
     return jsonify({"status": "success"})
 
 
+@app.route("/api/setup-widget", methods=["POST"])
+def setup_gorgias_widget() -> Any:
+    """Set up the Gorgias widget via API."""
+    try:
+        import requests
+        import os
+
+        # Get Gorgias credentials
+        auth = os.getenv("GORGIAS_AUTH")
+        base_url = os.getenv("GORGIAS_BASE_URL", "https://freebirdicons.gorgias.com/api")
+
+        if not auth:
+            return jsonify({
+                "status": "error",
+                "message": "GORGIAS_AUTH not configured"
+            }), 500
+
+        # Widget configuration
+        widget_data = {
+            "name": "AI Response Suggestion",
+            "description": "AI-powered response suggestions for customer support tickets",
+            "type": "custom_html",
+            "position": "right_sidebar",
+            "settings": {
+                "html": f'''<iframe
+  src="{request.host_url.rstrip('/')}/widget/{{{{ticket.id}}}}"
+  width="100%"
+  height="700px"
+  frameborder="0"
+  style="border: none; min-height: 700px;"
+></iframe>'''
+            },
+            "display_conditions": [
+                {
+                    "type": "ticket_status",
+                    "operator": "is_not",
+                    "value": "closed"
+                }
+            ],
+            "enabled": True
+        }
+
+        # Make request to Gorgias API
+        url = f"{base_url.rstrip('/')}/widgets"
+        headers = {
+            "Authorization": auth,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+        response = requests.post(url, headers=headers, json=widget_data)
+
+        if response.status_code == 201:
+            result = response.json()
+            logger.info("Widget created successfully: %s", result.get("id"))
+            return jsonify({
+                "status": "success",
+                "message": "Widget created successfully",
+                "widget_id": result.get("id")
+            })
+        else:
+            error_msg = response.text
+            logger.error("Failed to create widget: %s", error_msg)
+            return jsonify({
+                "status": "error",
+                "message": f"Failed to create widget: {error_msg}"
+            }), 500
+
+    except Exception as e:
+        logger.error("Error setting up widget: %s", e, exc_info=True)
+        return jsonify({
+            "status": "error",
+            "message": f"Internal error: {str(e)}"
+        }), 500
+
+
 @app.route("/widget/<ticket_id>", methods=["GET", "POST"])
 def widget(ticket_id: str) -> Any:
     if request.method == "POST":
