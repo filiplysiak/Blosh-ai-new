@@ -6,6 +6,7 @@ Synchronizes tickets from Gorgias API to local database
 import logging
 import os
 import re
+import time
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 import requests
@@ -36,13 +37,14 @@ class TicketSync:
             "content-type": "application/json"
         }
 
-    def _make_request(self, endpoint: str, params: Optional[Dict] = None) -> Optional[Any]:
+    def _make_request(self, endpoint: str, params: Optional[Dict] = None, max_retries: int = 3) -> Optional[Any]:
         """
-        Make a request to Gorgias API
+        Make a request to Gorgias API with retry logic for rate limits
         
         Args:
             endpoint: API endpoint (e.g., "/tickets")
             params: Query parameters
+            max_retries: Maximum number of retries for rate limit errors
             
         Returns:
             Response JSON or None if failed
@@ -51,24 +53,38 @@ class TicketSync:
             logger.error("Cannot make request - GORGIAS_AUTH not set")
             return None
 
-        try:
-            url = f"{self.gorgias_base_url.rstrip('/')}/{endpoint.lstrip('/')}"
-            response = requests.get(
-                url,
-                headers=self._get_headers(),
-                params=params or {},
-                timeout=30
-            )
+        url = f"{self.gorgias_base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+        
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(
+                    url,
+                    headers=self._get_headers(),
+                    params=params or {},
+                    timeout=30
+                )
 
-            if response.status_code == 200:
-                return response.json()
-            else:
-                logger.error(f"Gorgias API error {response.status_code}: {response.text[:200]}")
+                if response.status_code == 200:
+                    return response.json()
+                elif response.status_code == 429:
+                    # Rate limit hit - wait and retry
+                    wait_time = (attempt + 1) * 2  # Exponential backoff: 2s, 4s, 6s
+                    logger.warning(f"Rate limit hit for {endpoint}, waiting {wait_time}s before retry {attempt + 1}/{max_retries}")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Gorgias API error {response.status_code}: {response.text[:200]}")
+                    return None
+
+            except requests.RequestException as e:
+                logger.error(f"Request failed for {endpoint}: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
                 return None
-
-        except requests.RequestException as e:
-            logger.error(f"Request failed for {endpoint}: {e}")
-            return None
+        
+        logger.error(f"Failed to fetch {endpoint} after {max_retries} retries")
+        return None
 
     def _extract_ticket_info(self, ticket_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -129,10 +145,11 @@ class TicketSync:
         
         # Try to find in subject if not in tags
         if not order_number:
-            subject = ticket_data.get("subject", "")
-            order_match = re.search(r"\b(102\d{6}|203\d{5})\b", subject)
-            if order_match:
-                order_number = order_match.group(1)
+            subject = ticket_data.get("subject") or ""
+            if subject:
+                order_match = re.search(r"\b(102\d{6}|203\d{5})\b", subject)
+                if order_match:
+                    order_number = order_match.group(1)
         
         # Build ticket record
         ticket = {
@@ -196,23 +213,25 @@ class TicketSync:
             logger.error(f"Error syncing ticket {ticket_id}: {e}", exc_info=True)
             return False
 
-    def sync_recent_tickets(self, limit: int = 20) -> int:
+    def sync_recent_tickets(self, limit: int = 20, fetch_messages: bool = False) -> int:
         """
         Sync recent tickets from Gorgias
         
         Args:
             limit: Maximum number of tickets to sync
+            fetch_messages: Whether to fetch individual messages (causes rate limiting)
             
         Returns:
             Number of tickets successfully synced
         """
         try:
-            logger.info(f"Syncing up to {limit} recent tickets")
+            logger.info(f"Syncing up to {limit} recent tickets (fetch_messages={fetch_messages})")
             
-            # Fetch recent tickets (sorted by updated_datetime)
+            # Fetch recent tickets with messages included (more efficient)
             params = {
                 "order_by": "updated_datetime:desc",
-                "limit": limit
+                "limit": min(limit, 50),  # Cap at 50 to avoid rate limits
+                "include": "messages"  # Include messages in the response
             }
             
             response = self._make_request("tickets", params=params)
@@ -225,17 +244,23 @@ class TicketSync:
             logger.info(f"Fetched {len(tickets)} tickets from Gorgias")
             
             synced_count = 0
+            rate_limit_wait = 0.5  # Wait 500ms between tickets to avoid rate limits
             
-            for ticket_data in tickets:
+            for i, ticket_data in enumerate(tickets):
                 try:
                     ticket_id = str(ticket_data.get("id", ""))
                     if not ticket_id:
                         continue
                     
-                    # Fetch messages for this ticket
-                    messages_data = self._make_request(f"tickets/{ticket_id}/messages")
-                    if messages_data and "data" in messages_data:
-                        ticket_data["messages"] = messages_data["data"]
+                    # Only fetch individual messages if explicitly requested AND not included
+                    if fetch_messages and "messages" not in ticket_data:
+                        # Add delay to avoid rate limiting
+                        if i > 0:
+                            time.sleep(rate_limit_wait)
+                        
+                        messages_data = self._make_request(f"tickets/{ticket_id}/messages")
+                        if messages_data and "data" in messages_data:
+                            ticket_data["messages"] = messages_data["data"]
                     
                     # Extract and store
                     ticket = self._extract_ticket_info(ticket_data)
@@ -243,8 +268,12 @@ class TicketSync:
                     if self.db.upsert_ticket(ticket):
                         synced_count += 1
                     
+                    # Progress logging every 10 tickets
+                    if (i + 1) % 10 == 0:
+                        logger.info(f"Progress: {i + 1}/{len(tickets)} tickets processed")
+                    
                 except Exception as e:
-                    logger.error(f"Error processing ticket: {e}")
+                    logger.error(f"Error processing ticket {ticket_data.get('id', 'unknown')}: {e}")
                     continue
             
             logger.info(f"✅ Successfully synced {synced_count}/{len(tickets)} tickets")

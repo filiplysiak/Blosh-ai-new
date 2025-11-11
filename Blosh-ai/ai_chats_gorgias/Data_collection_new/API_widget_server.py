@@ -180,10 +180,12 @@ def initialize_system() -> None:
         ticket_count = db.get_ticket_count()
         logger.info("Database currently has %s tickets", ticket_count)
 
+        # Sync fewer tickets to avoid Gorgias rate limiting
+        # Use include=messages parameter instead of individual fetches
         if ticket_count < 10:
-            synced = sync.sync_recent_tickets(limit=100)
+            synced = sync.sync_recent_tickets(limit=30, fetch_messages=False)
         else:
-            synced = sync.sync_recent_tickets(limit=20)
+            synced = sync.sync_recent_tickets(limit=20, fetch_messages=False)
         logger.info("Synced %s tickets during initialization", synced)
 
         summary = manager.ensure_suggestions_for_top_n()
@@ -209,7 +211,8 @@ def periodic_sync() -> None:
             return
             
         logger.info("Running periodic sync...")
-        synced = sync.sync_recent_tickets(limit=20)
+        # Use smaller limit and don't fetch individual messages to avoid rate limits
+        synced = sync.sync_recent_tickets(limit=20, fetch_messages=False)
         summary = manager.ensure_suggestions_for_top_n()
         logger.info("Periodic sync results - synced: %s, summary: %s", synced, summary)
     except Exception as exc:  # pragma: no cover - defensive
@@ -316,16 +319,17 @@ def trigger_init() -> Any:
 
 @app.route("/api/sync", methods=["POST"])
 def trigger_sync() -> Any:
-    data = parse_payload(request.get_json())
+    data = parse_payload(request.get_json()) if request.get_json() else {}
     limit = int(choose_value(data.get("limit"), 20))
+    fetch_messages = data.get("fetch_messages", False)
 
     def run_sync():
-        synced = sync.sync_recent_tickets(limit=limit)
+        synced = sync.sync_recent_tickets(limit=min(limit, 50), fetch_messages=fetch_messages)
         summary = manager.ensure_suggestions_for_top_n()
         logger.info("Manual sync complete - synced: %s summary: %s", synced, summary)
 
     start_thread(run_sync)
-    return jsonify({"status": "sync_started", "limit": limit})
+    return jsonify({"status": "sync_started", "limit": limit, "fetch_messages": fetch_messages})
 
 
 @app.route("/api/suggest/<ticket_id>", methods=["GET"])
