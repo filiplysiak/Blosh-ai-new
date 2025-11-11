@@ -52,6 +52,8 @@ manager = get_manager()
 
 scheduler = BackgroundScheduler()
 initialization_done = False
+startup_done = False
+startup_lock = threading.Lock()
 
 # --------------------------------------------------------------------------- #
 # Helpers
@@ -200,11 +202,29 @@ def periodic_sync() -> None:
 
 
 def startup() -> None:
-    start_thread(initialize_system)
-    if not scheduler.running:
-        scheduler.add_job(periodic_sync, "interval", minutes=5, id="periodic_sync")
-        scheduler.start()
-        logger.info("✅ Scheduled periodic sync every 5 minutes")
+    """Run startup tasks (only once across all workers)"""
+    global startup_done
+    
+    with startup_lock:
+        if startup_done:
+            logger.info("Startup already completed by another worker")
+            return
+        
+        startup_done = True
+        logger.info("🚀 Running startup tasks...")
+        
+        # Initialize system in background
+        start_thread(initialize_system)
+        
+        # Start scheduler (only in one worker)
+        if not scheduler.running:
+            try:
+                # Sync every 10 minutes to avoid Gorgias rate limits
+                scheduler.add_job(periodic_sync, "interval", minutes=10, id="periodic_sync")
+                scheduler.start()
+                logger.info("✅ Scheduled periodic sync every 10 minutes")
+            except Exception as e:
+                logger.error(f"Failed to start scheduler: {e}")
 
 
 # Run startup at import time (works with gunicorn)
