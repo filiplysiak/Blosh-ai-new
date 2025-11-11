@@ -227,11 +227,10 @@ class TicketSync:
         try:
             logger.info(f"Syncing up to {limit} recent tickets (fetch_messages={fetch_messages})")
             
-            # Fetch recent tickets with messages included (more efficient)
+            # Fetch recent tickets (messages need to be fetched separately)
             params = {
                 "order_by": "updated_datetime:desc",
-                "limit": min(limit, 50),  # Cap at 50 to avoid rate limits
-                "include": "messages"  # Include messages in the response
+                "limit": min(limit, 50)  # Cap at 50 to avoid rate limits
             }
             
             response = self._make_request("tickets", params=params)
@@ -244,7 +243,7 @@ class TicketSync:
             logger.info(f"Fetched {len(tickets)} tickets from Gorgias")
             
             synced_count = 0
-            rate_limit_wait = 0.5  # Wait 500ms between tickets to avoid rate limits
+            rate_limit_wait = 1.0  # Wait 1 second between message fetches to avoid rate limits
             
             for i, ticket_data in enumerate(tickets):
                 try:
@@ -252,15 +251,20 @@ class TicketSync:
                     if not ticket_id:
                         continue
                     
-                    # Only fetch individual messages if explicitly requested AND not included
-                    if fetch_messages and "messages" not in ticket_data:
-                        # Add delay to avoid rate limiting
+                    # Fetch messages for each ticket (with rate limiting)
+                    # Only fetch if we don't already have messages or if explicitly requested
+                    if "messages" not in ticket_data or not ticket_data.get("messages"):
+                        # Add delay to avoid rate limiting (skip first one)
                         if i > 0:
                             time.sleep(rate_limit_wait)
                         
                         messages_data = self._make_request(f"tickets/{ticket_id}/messages")
                         if messages_data and "data" in messages_data:
                             ticket_data["messages"] = messages_data["data"]
+                        else:
+                            # If we can't fetch messages, skip this ticket
+                            logger.warning(f"Could not fetch messages for ticket {ticket_id}, skipping")
+                            continue
                     
                     # Extract and store
                     ticket = self._extract_ticket_info(ticket_data)

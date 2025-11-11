@@ -181,11 +181,12 @@ def initialize_system() -> None:
         logger.info("Database currently has %s tickets", ticket_count)
 
         # Sync fewer tickets to avoid Gorgias rate limiting
-        # Use include=messages parameter instead of individual fetches
+        # Each ticket requires 2 API calls (1 for ticket, 1 for messages)
+        # With 1 second delay, 10 tickets = ~20 seconds
         if ticket_count < 10:
-            synced = sync.sync_recent_tickets(limit=30, fetch_messages=False)
+            synced = sync.sync_recent_tickets(limit=10, fetch_messages=False)
         else:
-            synced = sync.sync_recent_tickets(limit=20, fetch_messages=False)
+            synced = sync.sync_recent_tickets(limit=5, fetch_messages=False)
         logger.info("Synced %s tickets during initialization", synced)
 
         summary = manager.ensure_suggestions_for_top_n()
@@ -211,8 +212,8 @@ def periodic_sync() -> None:
             return
             
         logger.info("Running periodic sync...")
-        # Use smaller limit and don't fetch individual messages to avoid rate limits
-        synced = sync.sync_recent_tickets(limit=20, fetch_messages=False)
+        # Use smaller limit to avoid rate limits (5 tickets = ~10 seconds with delays)
+        synced = sync.sync_recent_tickets(limit=5, fetch_messages=False)
         summary = manager.ensure_suggestions_for_top_n()
         logger.info("Periodic sync results - synced: %s, summary: %s", synced, summary)
     except Exception as exc:  # pragma: no cover - defensive
