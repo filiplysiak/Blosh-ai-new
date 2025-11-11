@@ -380,24 +380,43 @@ def widget_data(ticket_id: str) -> Any:
             if synced:
                 ticket = db.get_ticket(ticket_id)
         
-        if ticket and ticket.get('last_customer_message'):
-            # Queue for generation
-            logger.info("Queueing suggestion generation for ticket %s", ticket_id)
-            manager.generate_suggestion_async(ticket_id)
-            
-            return jsonify({
-                "status": "generating",
-                "message": "AI suggestion is being generated. Please refresh in 10 seconds.",
-                "ticket_id": ticket_id
-            })
-        else:
+        if not ticket or not ticket.get('last_customer_message'):
             # No customer message yet
             logger.warning("Ticket %s has no customer message", ticket_id)
             return jsonify({
-                "status": "no_message",
-                "message": "Waiting for customer message...",
+                "status": "not_applicable",
+                "message": "No customer inquiry detected. Widget only works for customer support tickets.",
                 "ticket_id": ticket_id
             })
+        
+        # Check if this is a marketing/promotional email (not a customer inquiry)
+        message = ticket.get('last_customer_message', '').lower()
+        subject = ticket.get('subject', '').lower()
+        
+        # Skip marketing emails
+        marketing_indicators = [
+            'unsubscribe', 'newsletter', 'promotion', 'press day', 
+            'marketing', 'campaign', 'announcement', 'sale alert',
+            'new collection', 'follow us', 'read more', 'book an appointment'
+        ]
+        
+        if any(indicator in message or indicator in subject for indicator in marketing_indicators):
+            logger.info("Ticket %s appears to be marketing/promotional content, skipping", ticket_id)
+            return jsonify({
+                "status": "not_applicable",
+                "message": "This appears to be a marketing email, not a customer inquiry.",
+                "ticket_id": ticket_id
+            })
+        
+        # Queue for generation
+        logger.info("Queueing suggestion generation for ticket %s", ticket_id)
+        manager.generate_suggestion_async(ticket_id)
+        
+        return jsonify({
+            "status": "generating",
+            "message": "AI suggestion is being generated. Refresh the page to see it.",
+            "ticket_id": ticket_id
+        })
 
 
 @app.route("/api/suggest", methods=["POST"])
