@@ -541,13 +541,12 @@ def widget_data(ticket_id: str) -> Any:
         # Return pre-generated suggestion (INSTANT)
         logger.info("Returning pre-generated suggestion for ticket %s", ticket_id)
         return jsonify({
-            "status": "ready",
-            "suggestion_text": suggestion['suggestion_text'],
-            "quality_score": suggestion.get('quality_score', 0),
-            "brand": suggestion.get('brand', 'Unknown'),
-            "warnings": suggestion.get('warnings', []),
-            "timestamp": suggestion.get('generated_at', ''),
-            "cached": True
+            "Status": "ready",
+            ":": f"Quality: {suggestion.get('quality_score', 0)}% | Brand: {suggestion.get('brand', 'Unknown')}",
+            "Suggested Response": suggestion['suggestion_text'],
+            "Quality Score": f"{suggestion.get('quality_score', 0)}%",
+            "Brand": suggestion.get('brand', 'Unknown'),
+            "Generated At": suggestion.get('generated_at', '')
         })
     else:
         # No suggestion yet - check if ticket exists
@@ -564,9 +563,12 @@ def widget_data(ticket_id: str) -> Any:
             # Still no ticket after sync attempt
             logger.warning("Ticket %s not found even after sync attempt", ticket_id)
             return jsonify({
-                "status": "not_applicable",
-                "message": "Ticket not found. Please ensure the ticket exists and try refreshing the page.",
-                "ticket_id": ticket_id
+                "Status": "not_found",
+                ":": "Ticket not found in database",
+                "Suggested Response": "-",
+                "Quality Score": "-",
+                "Brand": "-",
+                "Generated At": "-"
             })
 
         # Check if this ticket should have AI suggestions
@@ -583,43 +585,25 @@ def widget_data(ticket_id: str) -> Any:
             # For non-email tickets, still require customer message
             logger.warning("Non-email ticket %s has no customer message", ticket_id)
             return jsonify({
-                "status": "not_applicable",
-                "message": "No customer inquiry detected. Widget works for email tickets and customer support inquiries.",
-                "ticket_id": ticket_id
+                "Status": "no_message",
+                ":": "No customer inquiry detected",
+                "Suggested Response": "-",
+                "Quality Score": "-",
+                "Brand": "-",
+                "Generated At": "-"
             })
 
-        # Check for obvious marketing/promotional content (more restrictive for emails)
-        message = ticket.get('last_customer_message', '').lower()
-        subject = ticket.get('subject', '').lower()
-
-        # Skip only very obvious marketing emails
-        marketing_indicators = [
-            'unsubscribe from all', 'stop receiving', 'newsletter subscription',
-            'press release distribution', 'marketing campaign',
-            'bulk email', 'mass mailing'
-        ]
-
-        # For email tickets, be less restrictive about marketing content
-        if not is_email_ticket and any(indicator in message or indicator in subject for indicator in marketing_indicators):
-            logger.info("Non-email ticket %s appears to be marketing/promotional content, skipping", ticket_id)
-            return jsonify({
-                "status": "not_applicable",
-                "message": "This appears to be marketing content, not a customer inquiry.",
-                "ticket_id": ticket_id
-            })
-
-        # Allow email tickets with marketing indicators (they might need responses too)
-        if is_email_ticket and any(indicator in message or indicator in subject for indicator in marketing_indicators):
-            logger.info("Email ticket %s has marketing indicators but processing anyway", ticket_id)
-        
-        # Queue for generation
+        # Queue for generation if not already queued
         logger.info("Queueing suggestion generation for ticket %s", ticket_id)
         manager.generate_suggestion_async(ticket_id)
         
         return jsonify({
-            "status": "generating",
-            "message": "AI suggestion is being generated. Refresh the page to see it.",
-            "ticket_id": ticket_id
+            "Status": "generating",
+            ":": "AI suggestion is being generated. Refresh the page in 10-15 seconds.",
+            "Suggested Response": "-",
+            "Quality Score": "-",
+            "Brand": "-",
+            "Generated At": "-"
         })
 
 
