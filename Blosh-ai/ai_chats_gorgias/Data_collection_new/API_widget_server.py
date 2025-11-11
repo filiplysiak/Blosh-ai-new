@@ -230,11 +230,20 @@ def startup() -> None:
 
 
 # Run startup at import time (works with gunicorn)
-try:
-    startup()
-    logger.info("✅ App initialization complete")
-except Exception as e:
-    logger.error(f"Failed during startup: {e}", exc_info=True)
+# Delay startup to after Flask is ready
+def delayed_startup():
+    import time
+    time.sleep(2)  # Give Flask time to bind to port
+    try:
+        startup()
+        logger.info("✅ App initialization complete")
+    except Exception as e:
+        logger.error(f"Failed during startup: {e}", exc_info=True)
+
+# Start in background thread so Flask can bind immediately
+import threading
+threading.Thread(target=delayed_startup, daemon=True).start()
+logger.info("✅ Flask app module loaded - healthcheck endpoint ready")
 
 # --------------------------------------------------------------------------- #
 # Routes
