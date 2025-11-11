@@ -867,25 +867,12 @@ if __name__ == "__main__":
 # STARTUP LOGGING (runs when gunicorn imports the module)
 # ============================================================================
 
-logger.info("="*60)
-logger.info("🚀 Gorgias AI Widget Server Starting")
-logger.info("="*60)
-logger.info(f"OpenAI API Key: {'✓ Set' if OPENAI_API_KEY else '✗ Not Set'}")
-logger.info(f"Gorgias Auth: {'✓ Set' if GORGIAS_AUTH else '✗ Not Set'}")
-logger.info(f"Gorgias URL: {GORGIAS_BASE_URL}")
-logger.info("="*60)
-
 # ============================================================================
 # RUN SERVER (only for local development)
 # ============================================================================
 
-if __name__ == '__main__':
-    # This only runs when executing directly (not via gunicorn)
-    port = int(os.getenv('PORT', 5000))
-    logger.info(f"Running in development mode on port {port}")
-    app.run(
-        host='0.0.0.0',
-        port=port,
-        debug=True
-    )
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 5000))
+    logger.info("Running development server on port %s", port)
+    app.run(host="0.0.0.0", port=port, debug=True)
 
