@@ -215,15 +215,24 @@ def periodic_sync() -> None:
 
 
 def startup() -> None:
-    start_thread(initialize_system)
-    if not scheduler.running:
-        scheduler.add_job(periodic_sync, "interval", minutes=5, id="periodic_sync")
-        scheduler.start()
-        logger.info("✅ Scheduled periodic sync every 5 minutes")
+    try:
+        logger.info("🚀 Starting background tasks...")
+        start_thread(initialize_system)
+        if not scheduler.running:
+            scheduler.add_job(periodic_sync, "interval", minutes=10, id="periodic_sync")
+            scheduler.start()
+            logger.info("✅ Scheduled periodic sync every 10 minutes")
+    except Exception as e:
+        logger.error(f"Startup error: {e}", exc_info=True)
+        # Don't crash - let Flask start
 
 
 # Run startup at import time (works with gunicorn)
-startup()
+try:
+    startup()
+    logger.info("✅ App initialization complete")
+except Exception as e:
+    logger.error(f"Failed during startup: {e}", exc_info=True)
 
 # --------------------------------------------------------------------------- #
 # Routes
