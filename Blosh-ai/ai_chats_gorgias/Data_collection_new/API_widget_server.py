@@ -52,8 +52,6 @@ manager = get_manager()
 
 scheduler = BackgroundScheduler()
 initialization_done = False
-startup_done = False
-startup_lock = threading.Lock()
 
 # --------------------------------------------------------------------------- #
 # Helpers
@@ -202,29 +200,11 @@ def periodic_sync() -> None:
 
 
 def startup() -> None:
-    """Run startup tasks (only once across all workers)"""
-    global startup_done
-    
-    with startup_lock:
-        if startup_done:
-            logger.info("Startup already completed by another worker")
-            return
-        
-        startup_done = True
-        logger.info("🚀 Running startup tasks...")
-        
-        # Initialize system in background
-        start_thread(initialize_system)
-        
-        # Start scheduler (only in one worker)
-        if not scheduler.running:
-            try:
-                # Sync every 10 minutes to avoid Gorgias rate limits
-                scheduler.add_job(periodic_sync, "interval", minutes=10, id="periodic_sync")
-                scheduler.start()
-                logger.info("✅ Scheduled periodic sync every 10 minutes")
-            except Exception as e:
-                logger.error(f"Failed to start scheduler: {e}")
+    start_thread(initialize_system)
+    if not scheduler.running:
+        scheduler.add_job(periodic_sync, "interval", minutes=5, id="periodic_sync")
+        scheduler.start()
+        logger.info("✅ Scheduled periodic sync every 5 minutes")
 
 
 # Run startup at import time (works with gunicorn)
@@ -329,6 +309,60 @@ def get_suggestion(ticket_id: str) -> Any:
         )
 
     return jsonify(format_suggestion(suggestion))
+
+
+@app.route("/api/widget-data/<ticket_id>", methods=["GET"])
+def widget_data(ticket_id: str) -> Any:
+    """
+    Gorgias widget data endpoint - returns JSON for widget display
+    This is called by Gorgias HTTP integration when widget loads
+    """
+    logger.info("Widget data request for ticket %s", ticket_id)
+    
+    # Check if suggestion exists in database
+    suggestion = db.get_suggestion(ticket_id)
+    
+    if suggestion:
+        # Return pre-generated suggestion (INSTANT)
+        logger.info("Returning pre-generated suggestion for ticket %s", ticket_id)
+        return jsonify({
+            "status": "ready",
+            "suggestion_text": suggestion['suggestion_text'],
+            "quality_score": suggestion.get('quality_score', 0),
+            "brand": suggestion.get('brand', 'Unknown'),
+            "warnings": suggestion.get('warnings', []),
+            "timestamp": suggestion.get('generated_at', ''),
+            "cached": True
+        })
+    else:
+        # No suggestion yet - check if ticket exists
+        ticket = db.get_ticket(ticket_id)
+        
+        if not ticket:
+            # Try to sync from Gorgias
+            logger.info("Ticket %s not in DB, syncing from Gorgias", ticket_id)
+            synced = sync.sync_ticket(ticket_id)
+            if synced:
+                ticket = db.get_ticket(ticket_id)
+        
+        if ticket and ticket.get('last_customer_message'):
+            # Queue for generation
+            logger.info("Queueing suggestion generation for ticket %s", ticket_id)
+            manager.generate_suggestion_async(ticket_id)
+            
+            return jsonify({
+                "status": "generating",
+                "message": "AI suggestion is being generated. Please refresh in 10 seconds.",
+                "ticket_id": ticket_id
+            })
+        else:
+            # No customer message yet
+            logger.warning("Ticket %s has no customer message", ticket_id)
+            return jsonify({
+                "status": "no_message",
+                "message": "Waiting for customer message...",
+                "ticket_id": ticket_id
+            })
 
 
 @app.route("/api/suggest", methods=["POST"])
@@ -804,4 +838,30 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     logger.info("Running development server on port %s", port)
     app.run(host="0.0.0.0", port=port, debug=True)
+
+# ============================================================================
+# STARTUP LOGGING (runs when gunicorn imports the module)
+# ============================================================================
+
+logger.info("="*60)
+logger.info("🚀 Gorgias AI Widget Server Starting")
+logger.info("="*60)
+logger.info(f"OpenAI API Key: {'✓ Set' if OPENAI_API_KEY else '✗ Not Set'}")
+logger.info(f"Gorgias Auth: {'✓ Set' if GORGIAS_AUTH else '✗ Not Set'}")
+logger.info(f"Gorgias URL: {GORGIAS_BASE_URL}")
+logger.info("="*60)
+
+# ============================================================================
+# RUN SERVER (only for local development)
+# ============================================================================
+
+if __name__ == '__main__':
+    # This only runs when executing directly (not via gunicorn)
+    port = int(os.getenv('PORT', 5000))
+    logger.info(f"Running in development mode on port {port}")
+    app.run(
+        host='0.0.0.0',
+        port=port,
+        debug=True
+    )
 

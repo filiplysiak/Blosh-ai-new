@@ -34,7 +34,7 @@ def create_http_integration():
         "description": "Fetches AI-generated response suggestions for customer support tickets",
         "type": "http",
         "http": {
-            "url": f"{RAILWAY_URL}/widget/{{{{ticket.id}}}}",
+            "url": f"{RAILWAY_URL}/api/widget-data/{{{{ticket.id}}}}",
             "method": "GET",
             "headers": {},
             "triggers": {
@@ -43,14 +43,14 @@ def create_http_integration():
                 "ticket-updated": True
             },
             "request_content_type": "application/json",
-            "response_content_type": "text/html"
+            "response_content_type": "application/json"
         }
     }
     
     print("="*60)
     print("Step 1: Creating HTTP Integration")
     print("="*60)
-    print(f"Integration URL: {RAILWAY_URL}/widget/{{{{ticket.id}}}}")
+    print(f"Integration URL: {RAILWAY_URL}/api/widget-data/{{{{ticket.id}}}}")
     print()
     
     try:
@@ -93,17 +93,113 @@ def create_widget(integration_id):
         "accept": "application/json"
     }
     
-    # Widget configuration - displays HTML from the integration
+    # Widget configuration - displays JSON data using Gorgias template
     widget_config = {
         "title": "🤖 AI Response Suggestion",
         "context": "ticket",  # Display in ticket sidebar
         "integration_id": integration_id,
         "template": {
-            "type": "html",
-            "path": "",  # Root path - the integration returns full HTML
-            "title": "AI Suggestion",
+            "type": "wrapper",
+            "widgets": [
+                # Status field
+                {
+                    "type": "text",
+                    "path": "status",
+                    "title": "Status",
+                    "order": 0
+                },
+                # Message field (for generating/no_message states)
+                {
+                    "type": "text",
+                    "path": "message",
+                    "title": "",
+                    "order": 1,
+                    "meta": {
+                        "hideIfEmpty": True
+                    }
+                },
+                # Main suggestion text
+                {
+                    "type": "text",
+                    "path": "suggestion_text",
+                    "title": "Suggested Response",
+                    "order": 2,
+                    "meta": {
+                        "limit": 2000,
+                        "hideIfEmpty": True
+                    }
+                },
+                # Quality score
+                {
+                    "type": "text",
+                    "path": "quality_score",
+                    "title": "Quality Score",
+                    "order": 3,
+                    "meta": {
+                        "hideIfEmpty": True
+                    }
+                },
+                # Brand
+                {
+                    "type": "text",
+                    "path": "brand",
+                    "title": "Brand",
+                    "order": 4,
+                    "meta": {
+                        "hideIfEmpty": True
+                    }
+                },
+                # Warnings list
+                {
+                    "type": "list",
+                    "path": "warnings",
+                    "title": "Warnings",
+                    "order": 5,
+                    "widgets": [
+                        {
+                            "type": "text",
+                            "path": "",
+                            "title": ""
+                        }
+                    ],
+                    "meta": {
+                        "hideIfEmpty": True
+                    }
+                },
+                # Timestamp
+                {
+                    "type": "text",
+                    "path": "timestamp",
+                    "title": "Generated At",
+                    "order": 6,
+                    "meta": {
+                        "hideIfEmpty": True
+                    }
+                }
+            ],
             "meta": {
-                "displayCard": True
+                "displayCard": True,
+                "custom": {
+                    "buttons": [
+                        {
+                            "label": "🔄 Regenerate",
+                            "action": {
+                                "url": f"{RAILWAY_URL}/api/suggest",
+                                "method": "POST",
+                                "body": {
+                                    "contentType": "application/json",
+                                    "application/json": {
+                                        "ticket_id": "{{ticket.id}}"
+                                    },
+                                    "application/x-www-form-urlencoded": []
+                                },
+                                "params": [],
+                                "headers": []
+                            }
+                        }
+                    ],
+                    "links": []
+                }
             }
         }
     }
