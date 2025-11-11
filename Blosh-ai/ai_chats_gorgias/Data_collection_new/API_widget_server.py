@@ -966,21 +966,41 @@ def widget(ticket_id: str) -> Any:
 
         async function loadSuggestion() {
             try {
+                console.log(`Loading suggestion for ticket ${TICKET_ID}...`);
                 const response = await fetch(`${API_BASE}/api/suggest/${TICKET_ID}`);
 
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('Suggestion loaded successfully:', data);
                     displaySuggestion(data);
                     return;
                 }
 
                 if (response.status === 404) {
+                    console.log('Suggestion not found (404), checking if generating...');
+                    // Check if ticket exists and is being generated
+                    const ticketCheck = await fetch(`${API_BASE}/api/ticket/${TICKET_ID}`);
+                    if (ticketCheck.ok) {
+                        const ticketData = await ticketCheck.json();
+                        console.log('Ticket data:', ticketData);
+                        
+                        if (ticketData.in_database && !ticketData.has_suggestion) {
+                            // Ticket exists but no suggestion yet - poll for it
+                            console.log('Ticket in database, polling for suggestion...');
+                            displayLoading('AI suggestion is being generated...');
+                            await pollForSuggestion();
+                            return;
+                        }
+                    }
+                    
+                    // Ticket doesn't exist - show generate button
                     displayNoSuggestion();
                     return;
                 }
 
                 throw new Error(`Unexpected response: ${response.status}`);
             } catch (error) {
+                console.error('Error loading suggestion:', error);
                 displayError(error.message || 'Failed to load suggestion');
             }
         }
@@ -1007,18 +1027,30 @@ def widget(ticket_id: str) -> Any:
         }
 
         async function pollForSuggestion() {
-            const maxAttempts = 15;
+            const maxAttempts = 20;  // Increased from 15
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
+                console.log(`Polling attempt ${attempt}/${maxAttempts}...`);
+                
                 const response = await fetch(`${API_BASE}/api/suggest/${TICKET_ID}`);
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('Suggestion ready!', data);
                     displaySuggestion(data);
                     return;
                 }
-                displayLoading(`Generating AI suggestion... (${attempt * 2}s)`);
+                
+                displayLoading(`Generating AI suggestion... (${attempt * 2}s / ${maxAttempts * 2}s)`);
             }
-            displayError('Generation timed out. Please try again.');
+            
+            // Timeout - show retry button
+            document.getElementById('content').innerHTML = `
+                <div class="no-suggestion">
+                    <div style="font-size:32px;margin-bottom:12px;">⏱️</div>
+                    <div style="margin-bottom:16px;">Generation is taking longer than expected.</div>
+                    <button class="btn btn-primary" onclick="loadSuggestion()">Refresh</button>
+                </div>
+            `;
         }
 
         function displayLoading(message) {
