@@ -1,6 +1,8 @@
 """
 Gorgias Widget API Server (database-backed)
 Provides AI response suggestions for Gorgias tickets using a fine-tuned model.
+
+Version: 3.1
 """
 
 from __future__ import annotations
