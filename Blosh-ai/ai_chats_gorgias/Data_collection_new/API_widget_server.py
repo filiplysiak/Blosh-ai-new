@@ -302,12 +302,57 @@ def get_stats() -> Any:
                     "ticket_id": ticket["ticket_id"],
                     "created_at": ticket.get("created_at"),
                     "subject": ticket.get("subject"),
+                    "customer_name": ticket.get("customer_name"),
                     "has_suggestion": db.has_suggestion(ticket["ticket_id"]),
                 }
                 for ticket in top_tickets
             ],
         }
     )
+
+
+@app.route("/api/suggestions", methods=["GET"])
+def list_suggestions() -> Any:
+    """List all suggestions with their tickets"""
+    try:
+        with db._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    s.ticket_id,
+                    s.suggestion_text,
+                    s.quality_score,
+                    s.brand,
+                    s.generated_at,
+                    t.subject,
+                    t.customer_name
+                FROM suggestions s
+                LEFT JOIN tickets t ON s.ticket_id = t.ticket_id
+                ORDER BY s.generated_at DESC
+                LIMIT 50
+            """)
+            
+            suggestions = []
+            for row in cursor.fetchall():
+                suggestions.append({
+                    "ticket_id": row[0],
+                    "suggestion_preview": row[1][:100] + "..." if len(row[1]) > 100 else row[1],
+                    "quality_score": row[2],
+                    "brand": row[3],
+                    "generated_at": row[4],
+                    "subject": row[5],
+                    "customer_name": row[6],
+                    "view_url": f"/api/suggest/{row[0]}",
+                    "widget_url": f"/widget/{row[0]}"
+                })
+            
+            return jsonify({
+                "total": len(suggestions),
+                "suggestions": suggestions
+            })
+    except Exception as e:
+        logger.error(f"Error listing suggestions: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/init", methods=["POST"])
