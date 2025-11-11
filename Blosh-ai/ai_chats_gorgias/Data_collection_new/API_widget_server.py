@@ -167,6 +167,14 @@ def initialize_system() -> None:
     logger.info("=" * 60)
 
     try:
+        # Check if GORGIAS_AUTH is set
+        gorgias_auth = os.getenv("GORGIAS_AUTH")
+        if not gorgias_auth:
+            logger.warning("⚠️  GORGIAS_AUTH not set - skipping ticket sync")
+            logger.info("Widget will work for on-demand generation only")
+            initialization_done = True
+            return
+        
         ticket_count = db.get_ticket_count()
         logger.info("Database currently has %s tickets", ticket_count)
 
@@ -187,10 +195,17 @@ def initialize_system() -> None:
 
     except Exception as exc:  # pragma: no cover - defensive
         logger.error("Initialization failed: %s", exc, exc_info=True)
+        # Don't crash - let the server start anyway
+        initialization_done = True
 
 
 def periodic_sync() -> None:
     try:
+        # Check if GORGIAS_AUTH is set
+        if not os.getenv("GORGIAS_AUTH"):
+            logger.debug("Skipping periodic sync - GORGIAS_AUTH not set")
+            return
+            
         logger.info("Running periodic sync...")
         synced = sync.sync_recent_tickets(limit=20)
         summary = manager.ensure_suggestions_for_top_n()
