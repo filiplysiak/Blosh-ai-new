@@ -328,6 +328,7 @@ def list_suggestions() -> Any:
                     t.customer_name
                 FROM suggestions s
                 LEFT JOIN tickets t ON s.ticket_id = t.ticket_id
+                WHERE s.ticket_id NOT LIKE 'test_%'
                 ORDER BY s.generated_at DESC
                 LIMIT 50
             """)
@@ -353,6 +354,65 @@ def list_suggestions() -> Any:
     except Exception as e:
         logger.error(f"Error listing suggestions: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/cleanup-test-data", methods=["POST"])
+def cleanup_test_data_endpoint() -> Any:
+    """Remove test data from database"""
+    try:
+        logger.info("Cleanup test data requested via API")
+        
+        with db._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Find test tickets
+            cursor.execute("SELECT ticket_id FROM tickets WHERE ticket_id LIKE 'test_%'")
+            test_tickets = [row[0] for row in cursor.fetchall()]
+            
+            if not test_tickets:
+                return jsonify({
+                    "status": "success",
+                    "message": "No test data found - database is clean!",
+                    "deleted": {
+                        "tickets": 0,
+                        "suggestions": 0,
+                        "queue": 0,
+                        "feedback": 0
+                    }
+                })
+            
+            # Delete test data
+            cursor.execute("DELETE FROM suggestions WHERE ticket_id LIKE 'test_%'")
+            deleted_suggestions = cursor.rowcount
+            
+            cursor.execute("DELETE FROM generation_queue WHERE ticket_id LIKE 'test_%'")
+            deleted_queue = cursor.rowcount
+            
+            cursor.execute("DELETE FROM feedback WHERE ticket_id LIKE 'test_%'")
+            deleted_feedback = cursor.rowcount
+            
+            cursor.execute("DELETE FROM tickets WHERE ticket_id LIKE 'test_%'")
+            deleted_tickets = cursor.rowcount
+            
+            conn.commit()
+            
+            logger.info(f"Cleanup complete: {deleted_tickets} tickets, {deleted_suggestions} suggestions removed")
+            
+            return jsonify({
+                "status": "success",
+                "message": f"Removed {deleted_tickets} test tickets",
+                "deleted": {
+                    "tickets": deleted_tickets,
+                    "suggestions": deleted_suggestions,
+                    "queue": deleted_queue,
+                    "feedback": deleted_feedback
+                },
+                "test_tickets_removed": test_tickets
+            })
+            
+    except Exception as e:
+        logger.error(f"Error cleaning up test data: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @app.route("/api/init", methods=["POST"])
