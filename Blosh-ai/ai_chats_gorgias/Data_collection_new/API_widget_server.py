@@ -380,33 +380,48 @@ def widget_data(ticket_id: str) -> Any:
             if synced:
                 ticket = db.get_ticket(ticket_id)
         
-        if not ticket or not ticket.get('last_customer_message'):
-            # No customer message yet
-            logger.warning("Ticket %s has no customer message", ticket_id)
+        # Check if this ticket should have AI suggestions
+        channel = ticket.get('channel', '').lower()
+        is_email_ticket = 'email' in channel
+        has_customer_message = bool(ticket.get('last_customer_message'))
+
+        # For email tickets, be more permissive
+        if is_email_ticket:
+            # Allow email tickets even without customer messages (for follow-ups, etc.)
+            logger.info("Processing email ticket %s (channel: %s, has_customer_msg: %s)",
+                       ticket_id, channel, has_customer_message)
+        elif not has_customer_message:
+            # For non-email tickets, still require customer message
+            logger.warning("Non-email ticket %s has no customer message", ticket_id)
             return jsonify({
                 "status": "not_applicable",
-                "message": "No customer inquiry detected. Widget only works for customer support tickets.",
+                "message": "No customer inquiry detected. Widget works for email tickets and customer support inquiries.",
                 "ticket_id": ticket_id
             })
-        
-        # Check if this is a marketing/promotional email (not a customer inquiry)
+
+        # Check for obvious marketing/promotional content (more restrictive for emails)
         message = ticket.get('last_customer_message', '').lower()
         subject = ticket.get('subject', '').lower()
-        
-        # Skip marketing emails
+
+        # Skip only very obvious marketing emails
         marketing_indicators = [
-            'unsubscribe', 'newsletter', 'promotion', 'press day', 
-            'marketing', 'campaign', 'announcement', 'sale alert',
-            'new collection', 'follow us', 'read more', 'book an appointment'
+            'unsubscribe from all', 'stop receiving', 'newsletter subscription',
+            'press release distribution', 'marketing campaign',
+            'bulk email', 'mass mailing'
         ]
-        
-        if any(indicator in message or indicator in subject for indicator in marketing_indicators):
-            logger.info("Ticket %s appears to be marketing/promotional content, skipping", ticket_id)
+
+        # For email tickets, be less restrictive about marketing content
+        if not is_email_ticket and any(indicator in message or indicator in subject for indicator in marketing_indicators):
+            logger.info("Non-email ticket %s appears to be marketing/promotional content, skipping", ticket_id)
             return jsonify({
                 "status": "not_applicable",
-                "message": "This appears to be a marketing email, not a customer inquiry.",
+                "message": "This appears to be marketing content, not a customer inquiry.",
                 "ticket_id": ticket_id
             })
+
+        # Allow email tickets with marketing indicators (they might need responses too)
+        if is_email_ticket and any(indicator in message or indicator in subject for indicator in marketing_indicators):
+            logger.info("Email ticket %s has marketing indicators but processing anyway", ticket_id)
         
         # Queue for generation
         logger.info("Queueing suggestion generation for ticket %s", ticket_id)
