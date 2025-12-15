@@ -16,26 +16,25 @@ from database import get_db
 logger = logging.getLogger(__name__)
 
 
+
+# WITH THIS:
 class TicketSync:
     """Synchronizes tickets from Gorgias API"""
 
     def __init__(self):
         self.db = get_db()
-        self.gorgias_auth = os.getenv("GORGIAS_AUTH")
-        self.gorgias_base_url = os.getenv("GORGIAS_BASE_URL", "https://freebirdicons.gorgias.com/api")
+        # Note: env vars are read via properties to handle Railway timing
+        logger.info("Ticket sync instance created")
         
-        if not self.gorgias_auth:
-            logger.warning("GORGIAS_AUTH not set - ticket sync will not work")
-        else:
-            logger.info(f"Ticket sync initialized with base URL: {self.gorgias_base_url}")
-
-    def _get_headers(self) -> Dict[str, str]:
-        """Get headers for Gorgias API requests"""
-        return {
-            "accept": "application/json",
-            "authorization": self.gorgias_auth,
-            "content-type": "application/json"
-        }
+    @property
+    def gorgias_auth(self):
+        """Get GORGIAS_AUTH fresh each time"""
+        return os.getenv("GORGIAS_AUTH")
+    
+    @property
+    def gorgias_base_url(self):
+        """Get GORGIAS_BASE_URL fresh each time"""
+        return os.getenv("GORGIAS_BASE_URL", "https://freebirdicons.gorgias.com/api")
 
     def _make_request(self, endpoint: str, params: Optional[Dict] = None, max_retries: int = 3) -> Optional[Any]:
         """

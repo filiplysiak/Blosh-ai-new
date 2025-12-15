@@ -724,6 +724,64 @@ def setup_gorgias_widget() -> Any:
         }), 500
 
 
+@app.route("/api/update-widget-conditions", methods=["POST"])
+def update_widget_conditions() -> Any:
+    """Update HTTP integration display conditions to show for all tickets with messages"""
+    try:
+        import requests
+        import os
+
+        auth = os.getenv("GORGIAS_AUTH")
+        base_url = os.getenv("GORGIAS_BASE_URL", "https://freebirdicons.gorgias.com/api")
+
+        if not auth:
+            return jsonify({
+                "status": "error",
+                "message": "GORGIAS_AUTH not configured"
+            }), 500
+
+        # Get the HTTP integration ID (140986 from your logs)
+        integration_id = 140986
+
+        # Update to remove closed ticket restriction
+        url = f"{base_url.rstrip('/')}/integrations/{integration_id}"
+        headers = {
+            "Authorization": auth,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+        # First, get current integration config
+        response = requests.get(url, headers=headers)
+        if response.status_code != 200:
+            return jsonify({
+                "status": "error",
+                "message": f"Failed to get integration: {response.text}"
+            }), 500
+
+        integration = response.json()
+
+        # Update the HTTP config to remove display conditions
+        # Note: HTTP integrations don't have display_conditions in the same way
+        # They use triggers instead
+        
+        logger.info("Current integration config: %s", integration)
+
+        return jsonify({
+            "status": "info",
+            "message": "HTTP integrations don't have display_conditions like widgets. The widget shows based on triggers.",
+            "current_triggers": integration.get('http', {}).get('triggers', {}),
+            "note": "To show for all tickets, ensure triggers include: ticket-created, ticket-message-created, ticket-updated"
+        })
+
+    except Exception as e:
+        logger.error("Error updating widget conditions: %s", e, exc_info=True)
+        return jsonify({
+            "status": "error",
+            "message": f"Internal error: {str(e)}"
+        }), 500
+
+
 @app.route("/widget/<ticket_id>", methods=["GET", "POST"])
 def widget(ticket_id: str) -> Any:
     if request.method == "POST":

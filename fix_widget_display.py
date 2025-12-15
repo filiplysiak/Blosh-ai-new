@@ -74,3 +74,6 @@ if __name__ == "__main__":
         print("\nFailed to update widget")
         print("Make sure GORGIAS_AUTH is set")
 
+
+
+
