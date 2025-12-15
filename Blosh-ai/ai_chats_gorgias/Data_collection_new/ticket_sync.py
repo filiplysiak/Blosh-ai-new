@@ -36,6 +36,14 @@ class TicketSync:
         """Get GORGIAS_BASE_URL fresh each time"""
         return os.getenv("GORGIAS_BASE_URL", "https://freebirdicons.gorgias.com/api")
 
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers for Gorgias API requests"""
+        return {
+            "accept": "application/json",
+            "authorization": self.gorgias_auth,
+            "content-type": "application/json"
+        }
+
     def _make_request(self, endpoint: str, params: Optional[Dict] = None, max_retries: int = 3) -> Optional[Any]:
         """
         Make a request to Gorgias API with retry logic for rate limits
