@@ -1260,3 +1260,15 @@ if __name__ == "__main__":
     logger.info("Running development server on port %s", port)
     app.run(host="0.0.0.0", port=port, debug=True)
 
+@app.route("/debug/env", methods=["GET"])
+def debug_env():
+    """Debug: Check environment variables"""
+    import os
+    gorgias_auth = os.getenv("GORGIAS_AUTH")
+    return jsonify({
+        "GORGIAS_AUTH_exists": gorgias_auth is not None,
+        "GORGIAS_AUTH_length": len(gorgias_auth) if gorgias_auth else 0,
+        "GORGIAS_AUTH_starts_with": gorgias_auth[:10] if gorgias_auth else "NOT SET",
+        "OPENAI_API_KEY_exists": os.getenv("OPENAI_API_KEY") is not None,
+        "env_var_names": [k for k in os.environ.keys() if "GORGIAS" in k or "OPENAI" in k]
+    })
